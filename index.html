@@ -31,7 +31,7 @@
 
 <div id="lobby" class="container">
     <h1>🐺 Werewolf Online</h1>
-    <button onclick="showScreen('create-screen')">สร้างห้อง</button>
+    <button onclick="showScreen('create-screen'); unlockVoice();">สร้างห้อง</button>
     <button class="btn-blue" onclick="joinManual()">เข้าร่วมด้วยรหัสห้อง</button>
     <hr style="opacity: 0.3; margin: 15px 0;">
     <div id="room-list">กำลังค้นหาห้อง...</div>
@@ -82,7 +82,6 @@
         <div id="end-roles" style="text-align: left; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; margin-bottom: 20px;"></div>
         <button onclick="location.reload()">กลับสู่หน้าแรก</button>
     </div>
-    
     <div class="credit">Card Game Creators by.lilyuux</div>
 </div>
 
@@ -91,6 +90,7 @@
     const socket = io();
     let myRoom = '', myRole = '', isHost = false, lastGuard = '';
     let totalAlive = 0;
+    let currentGameState = '';
 
     const ROLE_IMG = {
         "มนุษย์หมาป่า": "https://i.postimg.cc/GmgZtgFK/IMG-0044.jpg",
@@ -98,6 +98,21 @@
         "บอดี้การ์ด": "https://i.postimg.cc/NjCWFC6x/IMG-0043.jpg",
         "ชาวบ้าน": "https://i.postimg.cc/rwZvsZ1D/IMG-0041.jpg"
     };
+
+    // ------------------------------------
+    // ฟังก์ชันเสียงพากย์ (พูดเฉพาะเครื่อง Host)
+    // ------------------------------------
+    function unlockVoice() {
+        if('speechSynthesis' in window) { window.speechSynthesis.speak(new SpeechSynthesisUtterance("")); }
+    }
+    function speakGame(text) {
+        if (isHost && 'speechSynthesis' in window) {
+            const msg = new SpeechSynthesisUtterance(text);
+            msg.lang = 'th-TH';
+            msg.rate = 0.95;
+            window.speechSynthesis.speak(msg);
+        }
+    }
 
     function showScreen(id) {
         document.querySelectorAll('.container').forEach(el => el.classList.add('hidden'));
@@ -109,7 +124,7 @@
         if(n && r) socket.emit('createRoom', { roomId: r, playerName: n, maxPlayers: m, password: p });
     }
 
-    function joinManual() { const rid = prompt("ใส่ชื่อห้อง:"); if(rid) joinRoomPrompt(rid, false); }
+    function joinManual() { unlockVoice(); const rid = prompt("ใส่ชื่อห้อง:"); if(rid) joinRoomPrompt(rid, false); }
     function joinRoomPrompt(rid, hasP) { const n = prompt("ชื่อเล่นของคุณ:"); if(!n) return; socket.emit('joinRoom', { roomId: rid, playerName: n, password: (hasP?prompt("รหัสผ่าน:"): "") }); }
 
     socket.on('roomListUpdate', (rooms) => {
@@ -117,7 +132,7 @@
         list.innerHTML = rooms.length === 0 ? '<p style="color:#888;">ยังไม่มีใครสร้างห้อง</p>' : rooms.map(r => `
             <div class="room-card">
                 <div><b>${r.id}</b> ${r.hasPassword?'🔒':''}<br><small>คนในห้อง: ${r.currentPlayers}/${r.maxPlayers}</small></div>
-                <button style="width:auto; padding:5px 15px;" class="btn-blue" onclick="joinRoomPrompt('${r.id}', ${r.hasPassword})">เข้า</button>
+                <button style="width:auto; padding:5px 15px;" class="btn-blue" onclick="unlockVoice(); joinRoomPrompt('${r.id}', ${r.hasPassword})">เข้า</button>
             </div>`).join('');
     });
 
@@ -140,6 +155,17 @@
             const btn = document.getElementById('start-btn');
             btn.disabled = room.players.length < 4;
             btn.innerText = room.players.length < 4 ? `ขาดอีก ${4-room.players.length} คน` : "เริ่มเกม";
+        }
+
+        // --- เช็คเพื่อเล่นเสียงพากย์ ---
+        if (room.state !== currentGameState) {
+            currentGameState = room.state;
+            if (room.state === 'NIGHT_WOLF') speakGame("เข้าสู่กลางคืน มนุษย์หมาป่าลืมตา");
+            else if (room.state === 'NIGHT_SEER') speakGame("มนุษย์หมาป่าหลับตา ผู้หยั่งรู้ลืมตา");
+            else if (room.state === 'NIGHT_BODYGUARD') speakGame("ผู้หยั่งรู้หลับตา บอดี้การ์ดลืมตา");
+            else if (room.state === 'DAY_TIME') speakGame("ทุกคนลืมตา เช้าแล้ว");
+            else if (room.state === 'VOTING') speakGame("หมดเวลาพูดคุย เริ่มทำการโหวตได้");
+            else if (room.state === 'GAME_OVER') speakGame("เกมจบแล้ว " + room.winner);
         }
 
         if(room.state === 'ROLE_REVEAL') {
@@ -172,7 +198,6 @@
             let html = room.lastVictim ? `<p style="color:red; font-size:18px;">เมื่อคืน ${room.lastVictim} ถูกฆ่าตาย</p>` : "<p style='font-size:18px;'>ไม่มีใครตาย</p>";
             btns.innerHTML = html;
             
-            // แก้ไข: ทุกคนที่ยังมีชีวิต สามารถกดปุ่มเริ่มโหวตได้
             if(me && me.isAlive) { 
                 const b = document.createElement('button'); 
                 b.innerText = "เมื่อคุยกันจบแล้ว กดเพื่อ 'เริ่มโหวต'"; 
@@ -195,27 +220,18 @@
             btns.innerHTML = html;
 
             if(me && me.isAlive) {
-                // ปุ่มโหวตรายบุคคล
                 room.players.filter(p => p.isAlive && p.id !== socket.id).forEach(p => {
                     const b = document.createElement('button');
                     b.innerText = `โหวต ${p.name}`;
                     b.classList.add('vote-btn');
-                    b.onclick = () => {
-                        socket.emit('castVote', { roomId: myRoom, targetId: p.id });
-                        disableAllVotes();
-                    };
+                    b.onclick = () => { socket.emit('castVote', { roomId: myRoom, targetId: p.id }); disableAllVotes(); };
                     btns.appendChild(b);
                 });
-                
-                // ปุ่มข้ามการโหวต
                 const skipBtn = document.createElement('button');
                 skipBtn.innerText = "ข้ามการโหวต (Skip)";
                 skipBtn.style.background = "#555";
                 skipBtn.classList.add('vote-btn');
-                skipBtn.onclick = () => {
-                    socket.emit('castVote', { roomId: myRoom, targetId: 'SKIP' });
-                    disableAllVotes();
-                };
+                skipBtn.onclick = () => { socket.emit('castVote', { roomId: myRoom, targetId: 'SKIP' }); disableAllVotes(); };
                 btns.appendChild(skipBtn);
             } else {
                 btns.innerHTML += "<p>คุณเป็นผี ทำได้แค่มอง...</p>";
@@ -225,24 +241,17 @@
         if(room.state === 'DAY_RESULT') {
             document.getElementById('phase-title').innerText = "ผลการโหวต";
             const btns = document.getElementById('target-btns');
-            if (room.lastEliminated) {
-                btns.innerHTML = `<p style="color:red; font-size:20px; font-weight:bold;">มติเอกฉันท์: ${room.lastEliminated} ถูกโหวตออก!</p>`;
-            } else {
-                btns.innerHTML = `<p style="font-size:20px; font-weight:bold;">คะแนนไม่เอกฉันท์ (ไม่มีใครถูกโหวตออก)</p>`;
-            }
+            if (room.lastEliminated) btns.innerHTML = `<p style="color:red; font-size:20px; font-weight:bold;">มติเอกฉันท์: ${room.lastEliminated} ถูกโหวตออก!</p>`;
+            else btns.innerHTML = `<p style="font-size:20px; font-weight:bold;">คะแนนไม่เอกฉันท์ (ไม่มีใครถูกโหวตออก)</p>`;
         }
 
         if(room.state === 'GAME_OVER') {
             document.getElementById('action-area').classList.add('hidden');
             document.getElementById('end-screen').classList.remove('hidden');
-            
             const title = document.getElementById('win-title');
             title.innerText = room.winner;
             title.style.color = room.winner.includes('หมาป่า') ? 'var(--wolf)' : 'var(--seer)';
-            
-            document.getElementById('end-roles').innerHTML = room.players.map(p => 
-                `<p style="margin:5px 0;"><b>${p.name}:</b> ${p.role} ${p.isAlive ? '' : '💀'}</p>`
-            ).join('');
+            document.getElementById('end-roles').innerHTML = room.players.map(p => `<p style="margin:5px 0;"><b>${p.name}:</b> ${p.role} ${p.isAlive ? '' : '💀'}</p>`).join('');
         }
     });
 
@@ -266,7 +275,6 @@
         const me = room.players.find(p => p.id === socket.id);
         const title = document.getElementById('phase-title'), btns = document.getElementById('target-btns');
         btns.innerHTML = "";
-        
         if(!me.isAlive) { title.innerText = "คุณตายแล้ว ได้แต่เฝ้าดู..."; return; }
 
         if(room.state === 'NIGHT_WOLF' && myRole === 'มนุษย์หมาป่า') {
@@ -304,12 +312,7 @@
         n.innerText = `ผลการตรวจ: ${d.name} คือ ${d.result}`; 
     });
 
-    function playerReady() { 
-        socket.emit('playerReady', myRoom); 
-        document.getElementById('ready-btn').disabled = true; 
-        document.getElementById('ready-btn').innerText = "รอคนอื่นกดพร้อม..."; 
-    }
-
+    function playerReady() { socket.emit('playerReady', myRoom); document.getElementById('ready-btn').disabled = true; document.getElementById('ready-btn').innerText = "รอคนอื่นกดพร้อม..."; }
     function startGame() { socket.emit('startGame', myRoom); }
     socket.on('errorMsg', (m) => alert(m));
 </script>
