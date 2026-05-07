@@ -8,10 +8,11 @@
     <style>
         :root { --bg: #0f0c29; --wolf: #e74c3c; --seer: #3498db; --gold: #c5a059; --guard: #27ae60; }
         body { font-family: 'Kanit', sans-serif; margin: 0; background: var(--bg); color: white; text-align: center; }
-        .container { background: #16213e; padding: 25px; border-radius: 20px; width: 90%; max-width: 400px; margin: 20px auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .container { background: #16213e; padding: 20px; border-radius: 20px; width: 90%; max-width: 400px; margin: 20px auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         .credit { font-size: 12px; color: #888; margin-top: 15px; }
         input, select, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: none; font-size: 16px; font-family: 'Kanit'; box-sizing: border-box; }
         button { background: var(--wolf); color: white; cursor: pointer; font-weight: bold; }
+        button:disabled { background: #555 !important; cursor: not-allowed; }
         .btn-blue { background: var(--seer); }
         .room-card { background: rgba(255,255,255,0.1); padding: 10px; margin: 10px 0; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; text-align: left; }
         .player-item { background: rgba(255,255,255,0.1); padding: 10px; margin: 5px 0; border-radius: 8px; display: flex; justify-content: space-between; }
@@ -23,6 +24,7 @@
         .card-front { background: #2c3e50; display: flex; align-items: center; justify-content: center; font-size: 50px; }
         .card-back { transform: rotateY(180deg); background-size: cover; background-position: center; }
         .notice-box { background: rgba(255,255,255,0.1); padding: 10px; border-radius: 10px; margin-bottom: 10px; color: #f1c40f; }
+        .timer-text { font-size: 40px; color: #e74c3c; font-weight: bold; margin: 10px 0; }
     </style>
 </head>
 <body>
@@ -41,14 +43,9 @@
     <input type="text" id="hName" placeholder="ชื่อเล่นของคุณ">
     <input type="text" id="rName" placeholder="ชื่อห้อง">
     <input type="password" id="rPass" placeholder="รหัสผ่าน (ถ้ามี)">
-    <select id="maxP">
-        <option value="4">4 คน</option>
-        <option value="5">5 คน</option>
-        <option value="6">6 คน</option>
-    </select>
+    <select id="maxP"><option value="4">4 คน</option><option value="5">5 คน</option><option value="6">6 คน</option></select>
     <button onclick="createRoom()">ตกลงสร้างห้อง</button>
     <button style="background:#555" onclick="showScreen('lobby')">ย้อนกลับ</button>
-    <div class="credit">Card Game Creators by.lilyuux</div>
 </div>
 
 <div id="waiting-room" class="container hidden">
@@ -78,6 +75,14 @@
         <div id="seer-notice" class="notice-box hidden"></div>
         <div id="target-btns"></div>
     </div>
+    
+    <div id="end-screen" class="hidden">
+        <h1 id="win-title" style="font-size: 40px; margin-bottom: 5px;"></h1>
+        <p>ผลสรุปบทบาทผู้เล่นทุกคน:</p>
+        <div id="end-roles" style="text-align: left; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; margin-bottom: 20px;"></div>
+        <button onclick="location.reload()">กลับสู่หน้าแรก</button>
+    </div>
+    
     <div class="credit">Card Game Creators by.lilyuux</div>
 </div>
 
@@ -85,6 +90,7 @@
 <script>
     const socket = io();
     let myRoom = '', myRole = '', isHost = false, lastGuard = '';
+    let totalAlive = 0;
 
     const ROLE_IMG = {
         "มนุษย์หมาป่า": "https://i.ibb.co/p6V1N5R/wolf.png",
@@ -143,10 +149,12 @@
                 showScreen('game-screen');
                 document.getElementById('role-area').classList.remove('hidden');
                 document.getElementById('action-area').classList.add('hidden');
+                document.getElementById('end-screen').classList.add('hidden');
+                
                 document.getElementById('role-text').innerText = "คุณคือ: " + myRole;
                 document.getElementById('role-img').style.backgroundImage = "url('" + ROLE_IMG[myRole] + "')";
                 document.getElementById('ready-btn').disabled = false;
-                document.getElementById('ready-btn').innerText = "พร้อมแล้ว";
+                document.getElementById('ready-btn').innerText = "พร้อมเข้าสู่กลางคืน";
             }
         }
 
@@ -157,16 +165,101 @@
         }
 
         if(room.state === 'DAY_TIME') {
+            const me = room.players.find(p => p.id === socket.id);
             document.getElementById('phase-title').innerText = "☀️ เช้าวันใหม่";
             const btns = document.getElementById('target-btns');
-            btns.innerHTML = room.lastVictim ? `<p style="color:red; font-size:18px;">เมื่อคืน ${room.lastVictim} ถูกฆ่าตาย</p>` : "<p style='font-size:18px;'>ไม่มีใครตาย</p>";
-            if(isHost) { 
+            
+            let html = room.lastVictim ? `<p style="color:red; font-size:18px;">เมื่อคืน ${room.lastVictim} ถูกฆ่าตาย</p>` : "<p style='font-size:18px;'>ไม่มีใครตาย</p>";
+            btns.innerHTML = html;
+            
+            // แก้ไข: ทุกคนที่ยังมีชีวิต สามารถกดปุ่มเริ่มโหวตได้
+            if(me && me.isAlive) { 
                 const b = document.createElement('button'); 
-                b.innerText = "เริ่มโหวต"; 
+                b.innerText = "เมื่อคุยกันจบแล้ว กดเพื่อ 'เริ่มโหวต'"; 
                 b.onclick = () => socket.emit('startVoting', myRoom); 
                 btns.appendChild(b); 
+            } else {
+                btns.innerHTML += "<p style='color:#aaa'>คุณตายแล้ว รอคนเป็นโหวต...</p>";
             }
         }
+
+        if(room.state === 'VOTING') {
+            const me = room.players.find(p => p.id === socket.id);
+            totalAlive = room.players.filter(p => p.isAlive).length;
+            
+            document.getElementById('phase-title').innerText = "⚖️ ช่วงโหวต!";
+            const btns = document.getElementById('target-btns');
+            
+            let html = `<div class="notice-box" id="vote-count">คนโหวตแล้ว 0 / ${totalAlive} คน</div>`;
+            html += `<div class="timer-text" id="vote-timer">15</div>`;
+            btns.innerHTML = html;
+
+            if(me && me.isAlive) {
+                // ปุ่มโหวตรายบุคคล
+                room.players.filter(p => p.isAlive && p.id !== socket.id).forEach(p => {
+                    const b = document.createElement('button');
+                    b.innerText = `โหวต ${p.name}`;
+                    b.classList.add('vote-btn');
+                    b.onclick = () => {
+                        socket.emit('castVote', { roomId: myRoom, targetId: p.id });
+                        disableAllVotes();
+                    };
+                    btns.appendChild(b);
+                });
+                
+                // ปุ่มข้ามการโหวต
+                const skipBtn = document.createElement('button');
+                skipBtn.innerText = "ข้ามการโหวต (Skip)";
+                skipBtn.style.background = "#555";
+                skipBtn.classList.add('vote-btn');
+                skipBtn.onclick = () => {
+                    socket.emit('castVote', { roomId: myRoom, targetId: 'SKIP' });
+                    disableAllVotes();
+                };
+                btns.appendChild(skipBtn);
+            } else {
+                btns.innerHTML += "<p>คุณเป็นผี ทำได้แค่มอง...</p>";
+            }
+        }
+
+        if(room.state === 'DAY_RESULT') {
+            document.getElementById('phase-title').innerText = "ผลการโหวต";
+            const btns = document.getElementById('target-btns');
+            if (room.lastEliminated) {
+                btns.innerHTML = `<p style="color:red; font-size:20px; font-weight:bold;">มติเอกฉันท์: ${room.lastEliminated} ถูกโหวตออก!</p>`;
+            } else {
+                btns.innerHTML = `<p style="font-size:20px; font-weight:bold;">คะแนนไม่เอกฉันท์ (ไม่มีใครถูกโหวตออก)</p>`;
+            }
+        }
+
+        if(room.state === 'GAME_OVER') {
+            document.getElementById('action-area').classList.add('hidden');
+            document.getElementById('end-screen').classList.remove('hidden');
+            
+            const title = document.getElementById('win-title');
+            title.innerText = room.winner;
+            title.style.color = room.winner.includes('หมาป่า') ? 'var(--wolf)' : 'var(--seer)';
+            
+            document.getElementById('end-roles').innerHTML = room.players.map(p => 
+                `<p style="margin:5px 0;"><b>${p.name}:</b> ${p.role} ${p.isAlive ? '' : '💀'}</p>`
+            ).join('');
+        }
+    });
+
+    function disableAllVotes() {
+        document.querySelectorAll('.vote-btn').forEach(btn => btn.disabled = true);
+        const notice = document.getElementById('vote-count');
+        if(notice) notice.innerText = "ส่งผลโหวตแล้ว รอเวลาหมด...";
+    }
+
+    socket.on('voteCountUpdate', (count) => {
+        const vc = document.getElementById('vote-count');
+        if(vc) vc.innerText = `คนโหวตแล้ว ${count} / ${totalAlive} คน`;
+    });
+
+    socket.on('timerUpdate', (time) => {
+        const timer = document.getElementById('vote-timer');
+        if(timer) timer.innerText = time;
     });
 
     function renderNight(room) {
@@ -214,7 +307,7 @@
     function playerReady() { 
         socket.emit('playerReady', myRoom); 
         document.getElementById('ready-btn').disabled = true; 
-        document.getElementById('ready-btn').innerText = "รอเพื่อนคนอื่น..."; 
+        document.getElementById('ready-btn').innerText = "รอคนอื่นกดพร้อม..."; 
     }
 
     function startGame() { socket.emit('startGame', myRoom); }
