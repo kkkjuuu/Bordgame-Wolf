@@ -7,41 +7,41 @@
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;500;700&display=swap" rel="stylesheet">
     <style>
         :root { --bg: #0f0c29; --wolf: #e74c3c; --seer: #3498db; --gold: #c5a059; --guard: #27ae60; }
-        body { font-family: 'Kanit', sans-serif; margin: 0; background: var(--bg); color: white; text-align: center; }
-        .container { background: #16213e; padding: 25px; border-radius: 20px; width: 90%; max-width: 400px; margin: 20px auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .credit { font-size: 12px; color: #888; margin-top: 15px; font-style: italic; }
-        input, select, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: none; font-size: 16px; box-sizing: border-box; font-family: 'Kanit'; }
+        body { font-family: 'Kanit', sans-serif; margin: 0; background: var(--bg); color: white; text-align: center; overflow-x: hidden; }
+        .container { background: #16213e; padding: 20px; border-radius: 20px; width: 90%; max-width: 400px; margin: 20px auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .credit { font-size: 11px; color: #666; margin-top: 10px; }
+        input, select, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: none; font-size: 16px; font-family: 'Kanit'; box-sizing: border-box; }
         button { background: var(--wolf); color: white; cursor: pointer; font-weight: bold; }
         .btn-blue { background: var(--seer); }
-        .room-card { background: rgba(255,255,255,0.1); padding: 12px; margin: 10px 0; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; text-align: left; }
+        .room-card { background: rgba(255,255,255,0.1); padding: 10px; margin: 10px 0; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; text-align: left; }
         .player-item { background: rgba(255,255,255,0.1); padding: 10px; margin: 5px 0; border-radius: 8px; display: flex; justify-content: space-between; }
         .hidden { display: none !important; }
-        .card-reveal { width: 200px; height: 300px; margin: 20px auto; perspective: 1000px; }
+        .card-reveal { width: 180px; height: 260px; margin: 15px auto; perspective: 1000px; }
         .card-inner { position: relative; width: 100%; height: 100%; transition: transform 0.6s; transform-style: preserve-3d; cursor: pointer; }
         .card-inner.flipped { transform: rotateY(180deg); }
-        .card-front, .card-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border: 3px solid var(--gold); border-radius: 15px; }
+        .card-front, .card-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border: 2px solid var(--gold); border-radius: 12px; }
         .card-front { background: #2c3e50; display: flex; align-items: center; justify-content: center; font-size: 40px; }
-        .card-back { transform: rotateY(180deg); background-size: cover; background-position: center; }
+        .card-back { transform: rotateY(180deg); background-size: cover; background-position: center; background-repeat: no-repeat; }
     </style>
 </head>
 <body>
 
 <div id="lobby" class="container">
-    <h1>🐺 Werewolf</h1>
+    <h1>🐺 Werewolf Online</h1>
     <div id="main-menu">
         <button onclick="showScreen('create-screen')">สร้างห้อง</button>
         <button class="btn-blue" onclick="joinManual()">เข้าร่วมด้วยรหัส</button>
-        <hr>
-        <div id="room-list">กำลังค้นหาห้อง...</div>
+        <hr style="opacity:0.2">
+        <div id="room-list">ค้นหาห้อง...</div>
     </div>
 
     <div id="create-screen" class="hidden">
-        <input type="text" id="hName" placeholder="ชื่อของคุณ">
+        <input type="text" id="hName" placeholder="ชื่อเล่นของคุณ">
         <input type="text" id="rName" placeholder="ชื่อห้อง">
         <input type="password" id="rPass" placeholder="รหัสผ่าน (ถ้ามี)">
         <select id="maxP"><option value="4">4 คน</option><option value="5">5 คน</option><option value="6">6 คน</option></select>
         <button onclick="createRoom()">ตกลงสร้างห้อง</button>
-        <button style="background:#555" onclick="location.reload()">ย้อนกลับ</button>
+        <button style="background:#444" onclick="location.reload()">กลับ</button>
     </div>
     <div class="credit">Card Game Creators by.lilyuux</div>
 </div>
@@ -57,7 +57,7 @@
 
 <div id="game-screen" class="container hidden">
     <div id="role-area">
-        <h3>บทบาทของคุณ (แตะการ์ด)</h3>
+        <h3>บทบาทของคุณ (แตะเพื่อดู)</h3>
         <div class="card-reveal">
             <div class="card-inner" id="card-obj" onclick="this.classList.toggle('flipped')">
                 <div class="card-front">?</div>
@@ -79,13 +79,13 @@
 <script src="/socket.io/socket.io.js"></script>
 <script>
     const socket = io();
-    let myRoom = '', myRole = '', lastGuardTarget = '', isHost = false;
+    let myRoom = '', myRole = '', isHost = false, lastGuard = '';
 
-    const ROLE_INFO = {
-        "มนุษย์หมาป่า": { img: "url('https://i.ibb.co/p6V1N5R/wolf.png')" },
-        "ผู้หยั่งรู้": { img: "url('https://i.ibb.co/9v8yX7M/seer.png')" },
-        "บอดี้การ์ด": { img: "url('https://i.ibb.co/M7y8yX1/guard.png')" },
-        "ชาวบ้าน": { img: "url('https://i.ibb.co/tZ5M1mX/villager.png')" }
+    const ROLE_IMG = {
+        "มนุษย์หมาป่า": "https://raw.githubusercontent.com/lilyuux/assets/main/wolf.png",
+        "ผู้หยั่งรู้": "https://raw.githubusercontent.com/lilyuux/assets/main/seer.png",
+        "บอดี้การ์ด": "https://raw.githubusercontent.com/lilyuux/assets/main/guard.png",
+        "ชาวบ้าน": "https://raw.githubusercontent.com/lilyuux/assets/main/villager.png"
     };
 
     function showScreen(id) {
@@ -94,137 +94,88 @@
     }
 
     function createRoom() {
-        const name = document.getElementById('hName').value;
-        const room = document.getElementById('rName').value;
-        const pass = document.getElementById('rPass').value;
-        const max = document.getElementById('maxP').value;
-        if(name && room) socket.emit('createRoom', { roomId: room, playerName: name, maxPlayers: max, password: pass });
+        const n = document.getElementById('hName').value, r = document.getElementById('rName').value, p = document.getElementById('rPass').value, m = document.getElementById('maxP').value;
+        if(n && r) socket.emit('createRoom', { roomId: r, playerName: n, maxPlayers: m, password: p });
     }
 
-    function joinManual() {
-        const rid = prompt("ใส่ชื่อห้อง:");
-        if(rid) joinRoomPrompt(rid, false);
-    }
-
-    function joinRoomPrompt(rid, hasPass) {
-        const n = prompt("ชื่อของคุณ:");
-        if(!n) return;
-        let p = hasPass ? prompt("รหัสผ่าน:") : "";
-        socket.emit('joinRoom', { roomId: rid, playerName: n, password: p });
-    }
+    function joinManual() { const rid = prompt("ชื่อห้อง:"); if(rid) joinRoomPrompt(rid, false); }
+    function joinRoomPrompt(rid, hasP) { const n = prompt("ชื่อเล่น:"); if(!n) return; socket.emit('joinRoom', { roomId: rid, playerName: n, password: (hasP?prompt("รหัส:"): "") }); }
 
     socket.on('roomListUpdate', (rooms) => {
         const list = document.getElementById('room-list');
-        if(rooms.length === 0) { list.innerHTML = '<p>ไม่มีห้องเปิดอยู่</p>'; return; }
-        list.innerHTML = rooms.map(r => `
+        list.innerHTML = rooms.length === 0 ? '<p>ไม่มีห้อง</p>' : rooms.map(r => `
             <div class="room-card">
-                <div><b>${r.id}</b> ${r.hasPassword?'🔒':''}<br><small>คน: ${r.currentPlayers}/${r.maxPlayers}</small></div>
+                <div><b>${r.id}</b> ${r.hasPassword?'🔒':''}<br><small>${r.currentPlayers}/${r.maxPlayers}</small></div>
                 <button style="width:auto; padding:5px 10px;" onclick="joinRoomPrompt('${r.id}', ${r.hasPassword})">เข้า</button>
-            </div>
-        `).join('');
+            </div>`).join('');
     });
 
-    socket.on('joined', (data) => {
-        myRoom = data.roomId; isHost = data.isHost;
-        showScreen('waiting-room');
-        document.getElementById('room-title').innerText = "ห้อง: " + myRoom;
-        if(isHost) document.getElementById('host-controls').classList.remove('hidden');
-    });
+    socket.on('joined', (d) => { myRoom = d.roomId; isHost = d.isHost; showScreen('waiting-room'); document.getElementById('room-title').innerText = "ห้อง: "+myRoom; if(isHost) document.getElementById('host-controls').classList.remove('hidden'); });
 
     socket.on('updateRoom', (room) => {
-        const me = room.players.find(p => p.id === socket.id);
-        if(!me) return;
-
         const pList = document.getElementById('player-list');
-        if(pList) {
-            pList.innerHTML = room.players.map(p => `
-                <div class="player-item">
-                    <span>${p.name} ${p.isHost?'👑':''}</span>
-                    <span style="color:${p.isReady?'#2ecc71':'#f1c40f'}">${p.isReady?'✅ พร้อม':'⏳ รอ...'}</span>
-                </div>
-            `).join('');
-        }
-
+        if(pList) pList.innerHTML = room.players.map(p => `<div class="player-item"><span>${p.name}${p.isHost?'👑':''}</span><span>${p.isReady?'✅':'⏳'}</span></div>`).join('');
+        
         if(isHost && room.state === 'LOBBY') {
             const btn = document.getElementById('start-btn');
             btn.disabled = room.players.length < 4;
-            btn.innerText = room.players.length < 4 ? `ขาดอีก ${4-room.players.length} คน` : "เริ่มเกม";
+            btn.innerText = room.players.length < 4 ? `ขาด ${4-room.players.length} คน` : "เริ่มเกม";
         }
 
         if(room.state === 'ROLE_REVEAL') {
-            myRole = me.role;
-            showScreen('game-screen');
-            document.getElementById('role-area').classList.remove('hidden');
-            document.getElementById('action-area').classList.add('hidden');
-            document.getElementById('role-text').innerText = "คุณคือ: " + myRole;
-            document.getElementById('role-img').style.backgroundImage = ROLE_INFO[myRole].img;
-            document.getElementById('ready-btn').disabled = false;
-            document.getElementById('ready-btn').innerText = "พร้อมแล้ว";
+            const me = room.players.find(p => p.id === socket.id);
+            if(me) {
+                myRole = me.role;
+                showScreen('game-screen');
+                document.getElementById('role-text').innerText = "คุณคือ: " + myRole;
+                document.getElementById('role-img').style.backgroundImage = "url('" + (ROLE_IMG[myRole] || "") + "')";
+            }
         }
 
         if(room.state.includes('NIGHT')) {
+            showScreen('game-screen');
             document.getElementById('role-area').classList.add('hidden');
             document.getElementById('action-area').classList.remove('hidden');
-            handleNightUI(room, me);
+            renderNight(room);
         }
 
         if(room.state === 'DAY_TIME') {
             document.getElementById('phase-title').innerText = "☀️ เช้าวันใหม่";
-            const btns = document.getElementById('target-btns');
-            btns.innerHTML = room.lastVictim ? `<p style="color:red">เมื่อคืนนี้ ${room.lastVictim} ถูกฆ่า</p>` : "<p>ไม่มีใครตาย</p>";
-            if(me.isAlive && isHost) {
-                const b = document.createElement('button');
-                b.innerText = "เริ่มโหวต";
-                b.onclick = () => socket.emit('startVoting', myRoom);
-                btns.appendChild(b);
-            }
+            document.getElementById('target-btns').innerHTML = room.lastVictim ? `<p style="color:red">${room.lastVictim} ถูกฆ่า</p>` : "<p>ไม่มีใครตาย</p>";
+            if(isHost) { const b = document.createElement('button'); b.innerText="เริ่มโหวต"; b.onclick=()=>socket.emit('startVoting', myRoom); document.getElementById('target-btns').appendChild(b); }
         }
     });
 
-    function handleNightUI(room, me) {
-        const title = document.getElementById('phase-title');
-        const btns = document.getElementById('target-btns');
+    function renderNight(room) {
+        const me = room.players.find(p => p.id === socket.id);
+        const title = document.getElementById('phase-title'), btns = document.getElementById('target-btns');
         btns.innerHTML = "";
-        
-        if(!me.isAlive) { title.innerText = "คุณตายแล้ว..."; return; }
+        if(!me.isAlive) { title.innerText = "คุณตายแล้ว"; return; }
 
         if(room.state === 'NIGHT_WOLF' && myRole === 'มนุษย์หมาป่า') {
             title.innerText = "คืนนี้จะฆ่าใคร?";
-            renderTargets(room, 'WOLF_KILL');
+            createBtns(room, 'WOLF_KILL');
         } else if(room.state === 'NIGHT_SEER' && myRole === 'ผู้หยั่งรู้') {
-            title.innerText = "ผู้หยั่งรู้ เลือกตรวจสอบ 1 คน";
-            renderTargets(room, 'SEER_CHECK');
+            title.innerText = "จะตรวจสอบใคร?";
+            createBtns(room, 'SEER_CHECK');
         } else if(room.state === 'NIGHT_BODYGUARD' && myRole === 'บอดี้การ์ด') {
-            title.innerText = "บอดี้การ์ด เลือกปกป้อง 1 คน";
-            renderTargets(room, 'GUARD_PROTECT');
-        } else {
-            title.innerText = "🌙 นอนหลับ...";
-            btns.innerHTML = "รอคนอื่นดำเนินการ...";
-        }
+            title.innerText = "จะปกป้องใคร?";
+            createBtns(room, 'GUARD_PROTECT');
+        } else { title.innerText = "🌙 นอนหลับ..."; btns.innerHTML = "รอคนอื่นดำเนินการ..."; }
     }
 
-    function renderTargets(room, type) {
-        const btns = document.getElementById('target-btns');
+    function createBtns(room, type) {
         room.players.filter(p => p.isAlive && p.id !== socket.id).forEach(p => {
-            if(type === 'GUARD_PROTECT' && p.id === lastGuardTarget) return;
+            if(type === 'GUARD_PROTECT' && p.id === lastGuard) return;
             const b = document.createElement('button');
             b.innerText = p.name;
-            b.onclick = () => {
-                if(type === 'GUARD_PROTECT') lastGuardTarget = p.id;
-                socket.emit('nightAction', { roomId: myRoom, targetId: p.id, actionType: type });
-                btns.innerHTML = "ส่งคำสั่งแล้ว...";
-            };
-            btns.appendChild(b);
+            b.onclick = () => { if(type === 'GUARD_PROTECT') lastGuard = p.id; socket.emit('nightAction', { roomId: myRoom, targetId: p.id, actionType: type }); document.getElementById('target-btns').innerHTML = "ส่งแล้ว..."; };
+            document.getElementById('target-btns').appendChild(b);
         });
     }
 
-    socket.on('seerResult', (data) => {
-        const notice = document.getElementById('seer-notice');
-        notice.classList.remove('hidden');
-        notice.innerText = `ผลการตรวจ: ${data.name} คือ ${data.result}`;
-    });
-
-    function playerReady() { socket.emit('playerReady', myRoom); document.getElementById('ready-btn').disabled = true; document.getElementById('ready-btn').innerText = "รอเพื่อน..."; }
+    socket.on('seerResult', (d) => { const n = document.getElementById('seer-notice'); n.classList.remove('hidden'); n.innerText = `ผล: ${d.name} เป็น ${d.result}`; });
+    function playerReady() { socket.emit('playerReady', myRoom); document.getElementById('ready-btn').disabled = true; }
     function startGame() { socket.emit('startGame', myRoom); }
     socket.on('errorMsg', (m) => alert(m));
 </script>
