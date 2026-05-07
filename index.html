@@ -8,7 +8,7 @@
     <style>
         :root { --bg: #0f0c29; --wolf: #e74c3c; --seer: #3498db; --gold: #c5a059; --guard: #27ae60; }
         body { font-family: 'Kanit', sans-serif; margin: 0; background: var(--bg); color: white; text-align: center; }
-        .container { background: #16213e; padding: 20px; border-radius: 20px; width: 90%; max-width: 400px; margin: 20px auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .container { background: #16213e; padding: 25px; border-radius: 20px; width: 90%; max-width: 400px; margin: 20px auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         .credit { font-size: 12px; color: #888; margin-top: 15px; }
         input, select, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: none; font-size: 16px; font-family: 'Kanit'; box-sizing: border-box; }
         button { background: var(--wolf); color: white; cursor: pointer; font-weight: bold; }
@@ -29,21 +29,25 @@
 
 <div id="lobby" class="container">
     <h1>🐺 Werewolf Online</h1>
-    <div id="main-menu">
-        <button onclick="showScreen('create-screen')">สร้างห้อง</button>
-        <button class="btn-blue" onclick="joinManual()">เข้าร่วมด้วยรหัสห้อง</button>
-        <hr style="opacity: 0.3; margin: 15px 0;">
-        <div id="room-list">กำลังค้นหาห้อง...</div>
-    </div>
+    <button onclick="showScreen('create-screen')">สร้างห้อง</button>
+    <button class="btn-blue" onclick="joinManual()">เข้าร่วมด้วยรหัสห้อง</button>
+    <hr style="opacity: 0.3; margin: 15px 0;">
+    <div id="room-list">กำลังค้นหาห้อง...</div>
+    <div class="credit">Card Game Creators by.lilyuux</div>
+</div>
 
-    <div id="create-screen" class="hidden">
-        <input type="text" id="hName" placeholder="ชื่อเล่นของคุณ">
-        <input type="text" id="rName" placeholder="ชื่อห้อง">
-        <input type="password" id="rPass" placeholder="รหัสผ่าน (ถ้ามี)">
-        <select id="maxP"><option value="4">4 คน</option><option value="5">5 คน</option><option value="6">6 คน</option></select>
-        <button onclick="createRoom()">ตกลงสร้างห้อง</button>
-        <button style="background:#555" onclick="location.reload()">ย้อนกลับ</button>
-    </div>
+<div id="create-screen" class="container hidden">
+    <h2>สร้างห้องใหม่</h2>
+    <input type="text" id="hName" placeholder="ชื่อเล่นของคุณ">
+    <input type="text" id="rName" placeholder="ชื่อห้อง">
+    <input type="password" id="rPass" placeholder="รหัสผ่าน (ถ้ามี)">
+    <select id="maxP">
+        <option value="4">4 คน</option>
+        <option value="5">5 คน</option>
+        <option value="6">6 คน</option>
+    </select>
+    <button onclick="createRoom()">ตกลงสร้างห้อง</button>
+    <button style="background:#555" onclick="showScreen('lobby')">ย้อนกลับ</button>
     <div class="credit">Card Game Creators by.lilyuux</div>
 </div>
 
@@ -82,7 +86,6 @@
     const socket = io();
     let myRoom = '', myRole = '', isHost = false, lastGuard = '';
 
-    // ลิงก์รูปภาพสำรอง (แก้ลิงก์เป็นรูปที่คุณอัปโหลดได้เลย)
     const ROLE_IMG = {
         "มนุษย์หมาป่า": "https://i.ibb.co/p6V1N5R/wolf.png",
         "ผู้หยั่งรู้": "https://i.ibb.co/9v8yX7M/seer.png",
@@ -190,7 +193,7 @@
 
     function createBtns(room, type) {
         room.players.filter(p => p.isAlive && p.id !== socket.id).forEach(p => {
-            if(type === 'GUARD_PROTECT' && p.id === lastGuard) return; // ห้ามปกป้องคนเดิม
+            if(type === 'GUARD_PROTECT' && p.id === lastGuard) return; 
             const b = document.createElement('button');
             b.innerText = p.name;
             b.onclick = () => { 
