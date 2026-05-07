@@ -7,21 +7,14 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-app.use(express.static(path.join(__dirname)));
-
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
+app.get('/', (req, res) => { res.sendFile(path.join(__dirname, 'index.html')); });
 
 const rooms = {};
 
 function broadcastRooms() {
     const roomList = Object.keys(rooms).map(id => ({
-        id: id,
-        currentPlayers: rooms[id].players.length,
-        maxPlayers: rooms[id].maxPlayers,
-        hasPassword: rooms[id].password !== "",
-        state: rooms[id].state
+        id: id, currentPlayers: rooms[id].players.length, maxPlayers: rooms[id].maxPlayers,
+        hasPassword: rooms[id].password !== "", state: rooms[id].state
     })).filter(r => r.state === 'LOBBY');
     io.emit('roomListUpdate', roomList);
 }
@@ -34,12 +27,9 @@ io.on('connection', (socket) => {
         socket.join(roomId);
         rooms[roomId] = {
             players: [{ id: socket.id, name: playerName, isHost: true, isAlive: true, isReady: false }],
-            state: 'LOBBY',
-            maxPlayers: parseInt(maxPlayers),
-            password: password || "",
+            state: 'LOBBY', maxPlayers: parseInt(maxPlayers), password: password || "",
             nightActions: { WOLF_KILL: null, GUARD_PROTECT: null },
-            lastGuarded: {},
-            votes: {}
+            lastGuarded: {}, votes: {}
         };
         socket.emit('joined', { roomId, isHost: true });
         broadcastRooms();
@@ -49,6 +39,7 @@ io.on('connection', (socket) => {
         const room = rooms[roomId];
         if (!room) return socket.emit('errorMsg', 'ไม่พบห้อง');
         if (room.password !== "" && room.password !== password) return socket.emit('errorMsg', 'รหัสผ่านผิด');
+        if (room.players.length >= room.maxPlayers) return socket.emit('errorMsg', 'ห้องเต็มแล้ว');
         socket.join(roomId);
         room.players.push({ id: socket.id, name: playerName, isHost: false, isAlive: true, isReady: false });
         socket.emit('joined', { roomId, isHost: false });
@@ -64,18 +55,15 @@ io.on('connection', (socket) => {
             roles = roles.concat(Array(room.players.length - 4).fill("ชาวบ้าน"));
         }
         const shuffled = roles.sort(() => Math.random() - 0.5);
-        room.players.forEach((p, i) => {
-            p.role = shuffled[i];
-            p.isReady = false;
-            p.isAlive = true;
-        });
+        room.players.forEach((p, i) => { p.role = shuffled[i]; p.isReady = false; p.isAlive = true; });
         room.state = 'STARTING';
         io.to(roomId).emit('updateRoom', room);
         broadcastRooms();
+
         setTimeout(() => {
             room.state = 'ROLE_REVEAL';
             io.to(roomId).emit('updateRoom', room);
-        }, 4000);
+        }, 3000);
     });
 
     socket.on('playerReady', (roomId) => {
@@ -85,12 +73,15 @@ io.on('connection', (socket) => {
         if (p) {
             p.isReady = true;
             const alive = room.players.filter(x => x.isAlive);
+            io.to(roomId).emit('updateRoom', room);
+
             if (alive.every(x => x.isReady)) {
-                room.players.forEach(x => x.isReady = false);
-                room.state = 'NIGHT_WOLF';
-                io.to(roomId).emit('updateRoom', room);
-            } else {
-                io.to(roomId).emit('updateRoom', room);
+                setTimeout(() => {
+                    room.players.forEach(x => x.isReady = false);
+                    room.state = 'NIGHT_WOLF';
+                    room.nightActions = { WOLF_KILL: null, GUARD_PROTECT: null };
+                    io.to(roomId).emit('updateRoom', room);
+                }, 1000);
             }
         }
     });
@@ -116,7 +107,7 @@ io.on('connection', (socket) => {
     function resolveNight(roomId) {
         const room = rooms[roomId];
         let victim = null;
-        if (room.nightActions.WOLF_KILL !== room.nightActions.GUARD_PROTECT) {
+        if (room.nightActions.WOLF_KILL && room.nightActions.WOLF_KILL !== room.nightActions.GUARD_PROTECT) {
             const p = room.players.find(x => x.id === room.nightActions.WOLF_KILL);
             if (p) { p.isAlive = false; victim = p.name; }
         }
