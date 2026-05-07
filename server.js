@@ -7,7 +7,11 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-app.use(express.static(path.join(__dirname, 'public')));
+// --- แก้ไขตรงนี้: ดึงไฟล์ index.html จากหน้าแรกโดยตรง ---
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+// --------------------------------------------------
 
 const rooms = {};
 
