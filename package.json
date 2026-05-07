@@ -1,7 +1,7 @@
 {
-  "name": "werewolf-online",
+  "name": "werewolf-pro",
   "version": "1.0.0",
-  "description": "Werewolf Multiplayer Game",
+  "description": "Werewolf Pro Multiplayer",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
