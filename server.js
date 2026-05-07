@@ -42,7 +42,7 @@ io.on('connection', (socket) => {
             votes: {}
         };
         socket.emit('joined', { roomId, isHost: true });
-        io.to(roomId).emit('updateRoom', rooms[roomId]); // อัปเดตให้ตัวเองเห็นรายชื่อทันที
+        io.to(roomId).emit('updateRoom', rooms[roomId]);
         broadcastRooms();
     });
 
@@ -89,6 +89,7 @@ io.on('connection', (socket) => {
             if (alive.every(x => x.isReady)) {
                 room.players.forEach(x => x.isReady = false);
                 room.state = 'NIGHT_WOLF';
+                room.nightActions = { WOLF_KILL: null, GUARD_PROTECT: null };
                 io.to(roomId).emit('updateRoom', room);
             } else {
                 io.to(roomId).emit('updateRoom', room);
@@ -123,6 +124,82 @@ io.on('connection', (socket) => {
         }
         room.state = 'DAY_TIME';
         room.lastVictim = victim;
+        io.to(roomId).emit('updateRoom', room);
+    }
+
+    // --- ระบบโหวต ---
+    socket.on('startVoting', (roomId) => {
+        const room = rooms[roomId];
+        if (!room || room.state === 'VOTING') return;
+        room.state = 'VOTING';
+        room.votes = {};
+        io.to(roomId).emit('updateRoom', room);
+
+        let time = 15; // จับเวลาโหวต 15 วินาที
+        const timer = setInterval(() => {
+            time--;
+            io.to(roomId).emit('timerUpdate', time);
+            if (time <= 0) {
+                clearInterval(timer);
+                resolveVote(roomId);
+            }
+        }, 1000);
+    });
+
+    socket.on('castVote', ({ roomId, targetId }) => {
+        const room = rooms[roomId];
+        if (room && room.state === 'VOTING') {
+            room.votes[socket.id] = targetId;
+            // ส่งจำนวนคนที่โหวตแล้วกลับไป
+            io.to(roomId).emit('voteCountUpdate', Object.keys(room.votes).length);
+        }
+    });
+
+    function resolveVote(roomId) {
+        const room = rooms[roomId];
+        if (!room) return;
+        
+        const counts = {};
+        Object.values(room.votes).forEach(id => counts[id] = (counts[id] || 0) + 1);
+
+        let eliminatedId = null;
+        let maxVotes = 0;
+        // หาคนที่ได้คะแนนสูงสุด
+        for (let [id, count] of Object.entries(counts)) {
+            if (count > maxVotes && id !== 'SKIP') {
+                maxVotes = count;
+                eliminatedId = id;
+            } else if (count === maxVotes) {
+                eliminatedId = null; // ถ้าคะแนนเท่ากัน = ไม่มีใครออก
+            }
+        }
+
+        let victim = null;
+        if (eliminatedId) {
+            const p = room.players.find(x => x.id === eliminatedId);
+            if (p) { p.isAlive = false; victim = p.name; }
+        }
+
+        room.state = 'DAY_RESULT';
+        room.lastEliminated = victim;
+        io.to(roomId).emit('updateRoom', room);
+
+        setTimeout(() => { checkGameOver(roomId); }, 4000);
+    }
+
+    function checkGameOver(roomId) {
+        const room = rooms[roomId];
+        const wolves = room.players.filter(p => p.role === 'มนุษย์หมาป่า' && p.isAlive);
+        const villagers = room.players.filter(p => p.role !== 'มนุษย์หมาป่า' && p.isAlive);
+
+        if (wolves.length === 0) {
+            room.state = 'GAME_OVER'; room.winner = 'ฝ่ายชาวบ้าน ชนะ!';
+        } else if (wolves.length >= villagers.length) {
+            room.state = 'GAME_OVER'; room.winner = 'ฝ่ายหมาป่า ชนะ!';
+        } else {
+            room.state = 'ROLE_REVEAL'; // วนกลับไปกดพร้อมใหม่
+            room.players.forEach(p => p.isReady = false);
+        }
         io.to(roomId).emit('updateRoom', room);
     }
 });
