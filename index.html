@@ -279,13 +279,6 @@
         function startGame() { socket.emit('startGame', myRoom); }
         function speak(text) { const u = new SpeechSynthesisUtterance(text); u.lang = 'th-TH'; window.speechSynthesis.speak(u); }
         socket.on('errorMsg', (m) => alert(m));
-        
-        
-        function playerReady() {
-    		socket.emit('playerReady', myRoom); // ต้องส่งชื่อห้อง (myRoom) ไปด้วยเสมอ
-    		document.getElementById('ready-btn').disabled = true;
-    		document.getElementById('ready-btn').innerText = "รอคนอื่น...";
-		}
 
     </script>
 </body>
