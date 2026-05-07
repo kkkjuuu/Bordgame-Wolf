@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Werewolf Online</title>
+    <style>
+        body {
+            font-family: 'Kanit', sans-serif;
+            background-color: #1a1a2e; color: #fff;
+            margin: 0; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; min-height: 100vh;
+            text-align: center;
+        }
+        .container {
+            background-color: #16213e; padding: 20px; border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+            width: 90%; max-width: 500px; margin-bottom: 20px;
+        }
+        input, select, button {
+            width: 100%; padding: 15px; margin: 10px 0; border-radius: 8px;
+            border: none; font-size: 16px; box-sizing: border-box;
+            font-family: 'Kanit', sans-serif;
+        }
+        button {
+            background-color: #e94560; color: white; cursor: pointer; font-weight: bold;
+            transition: 0.3s;
+        }
+        button:hover { background-color: #d1304b; }
+        .player-list { list-style: none; padding: 0; }
+        .player-list li {
+            background: #0f3460; padding: 10px; margin: 5px 0; border-radius: 5px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .dead { text-decoration: line-through; color: #888; background: #222 !important; }
+        .action-btn { background-color: #4a69bd; width: auto; padding: 8px 15px; margin: 0; }
+        .hidden { display: none !important; }
+        .role-card {
+            background: linear-gradient(135deg, #f39c12, #d35400);
+            padding: 20px; border-radius: 10px; margin: 20px 0; font-size: 24px; font-weight: bold;
+        }
+        .status-box {
+            background-color: #0f3460; padding: 15px; border-radius: 10px; margin-bottom: 15px; font-size: 18px; color: #f1c40f;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- หน้าต่างเข้าร่วมห้อง -->
+    <div class="container" id="login-screen">
+        <h1>🐺 Werewolf Online</h1>
+        <input type="text" id="playerName" placeholder="ชื่อของคุณ" required>
+        <input type="text" id="roomCode" placeholder="รหัสห้อง (เช่น 1234)" required>
+        
+        <div style="text-align: left; margin-top: 10px;">
+            <label style="color: #ccc;">จำนวนผู้เล่น (เฉพาะคนสร้างห้อง):</label>
+            <select id="maxPlayers">
+                <option value="4">4 คน (หมาป่า 1, นายอำเภอ 1, ชาวบ้าน 2)</option>
+                <option value="5">5 คน (หมาป่า 1, นายอำเภอ 1, ชาวบ้าน 3)</option>
+                <option value="6">6 คน (หมาป่า 2, นายอำเภอ 1, ชาวบ้าน 3)</option>
+                <option value="8">8 คน (หมาป่า 2, นายอำเภอ 1, ผู้หยั่งรู้ 1, ชาวบ้าน 4)</option>
+            </select>
+        </div>
+
+        <button onclick="joinRoom()">เข้าสู่เกม / สร้างห้อง</button>
+        <p id="error-msg" style="color:#e74c3c;"></p>
+    </div>
+
+    <!-- หน้าต่างเล่นเกม -->
+    <div class="container hidden" id="game-screen">
+        <h2 style="margin-top: 0;">รหัสห้อง: <span id="display-room" style="color: #e94560;"></span></h2>
+        
+        <div id="status-box" class="status-box">รอผู้เล่นคนอื่น...</div>
+        
+        <div id="role-container" class="hidden">
+            <div class="role-card" id="my-role"></div>
+        </div>
+
+        <button id="ready-btn" class="hidden" onclick="setReady()">พร้อมแล้ว (เข้าสู่กลางคืน)</button>
+        <button id="vote-btn" class="hidden" onclick="startVote()">เริ่มโหวต</button>
+
+        <h3 style="text-align: left; border-bottom: 1px solid #444; padding-bottom: 10px;">รายชื่อผู้เล่น</h3>
+        <ul id="players-list" class="player-list"></ul>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        let currentRoom = '';
+        let myId = '';
+        let myRole = '';
+        let isDead = false;
+
+        function joinRoom() {
+            const name = document.getElementById('playerName').value;
+            const room = document.getElementById('roomCode').value;
+            const max = document.getElementById('maxPlayers').value;
+
+            if (name && room) {
+                currentRoom = room;
+                socket.emit('joinRoom', { roomId: room, playerName: name, maxPlayers: max });
+                
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('game-screen').classList.remove('hidden');
+                document.getElementById('display-room').innerText = room;
+                
+                // ปลดล็อคระบบเสียงของ iOS/Android
+                const unlockAudio = new SpeechSynthesisUtterance("");
+                window.speechSynthesis.speak(unlockAudio);
+            }
+        }
+
+        socket.on('updateRoom', (room) => {
+            const me = room.players.find(p => p.id === socket.id);
+            if(me) {
+                myId = me.id;
+                myRole = me.role;
+                isDead = !me.isAlive;
+            }
+
+            renderPlayers(room);
+            handleGameState(room);
+        });
+
+        socket.on('errorMsg', (msg) => {
+            document.getElementById('error-msg').innerText = msg;
+            document.getElementById('login-screen').classList.remove('hidden');
+            document.getElementById('game-screen').classList.add('hidden');
+        });
+
+        socket.on('systemVoice', (text) => {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'th-TH';
+            utterance.rate = 0.9;
+            window.speechSynthesis.speak(utterance);
+        });
+
+        function renderPlayers(room) {
+            const list = document.getElementById('players-list');
+            list.innerHTML = '';
+            
+            room.players.forEach(p => {
+                const li = document.createElement('li');
+                
+                const nameSpan = document.createElement('span');
+                nameSpan.innerText = `${p.name} ${p.id === myId ? '(คุณ)' : ''} ${p.isReady ? '✅' : ''}`;
+                li.appendChild(nameSpan);
+
+                if (!p.isAlive) li.classList.add('dead');
+
+                if (p.isAlive && p.id !== myId) {
+                    if (room.state === 'NIGHT_WOLF' && myRole && myRole.includes('หมาป่า') && !isDead) {
+                        li.appendChild(createActionButton('ฆ่า', () => sendNightAction(p.id, 'WOLF_KILL')));
+                    }
+                    if (room.state === 'NIGHT_SHERIFF' && myRole && myRole.includes('นายอำเภอ') && !isDead) {
+                        li.appendChild(createActionButton('ปกป้อง', () => sendNightAction(p.id, 'SHERIFF_PROTECT')));
+                    }
+                    if (room.state === 'VOTING' && !isDead) {
+                        li.appendChild(createActionButton('โหวต', () => votePlayer(p.id)));
+                    }
+                }
+                list.appendChild(li);
+            });
+        }
+
+        function createActionButton(text, onClick) {
+            const btn = document.createElement('button');
+            btn.innerText = text;
+            btn.className = 'action-btn';
+            btn.onclick = onClick;
+            return btn;
+        }
+
+        function handleGameState(room) {
+            const statusBox = document.getElementById('status-box');
+            const roleContainer = document.getElementById('role-container');
+            const readyBtn = document.getElementById('ready-btn');
+            const voteBtn = document.getElementById('vote-btn');
+
+            readyBtn.classList.add('hidden');
+            voteBtn.classList.add('hidden');
+
+            if (room.state === 'LOBBY') {
+                statusBox.innerText = `รอผู้เล่น... (${room.players.length}/${room.maxPlayers})`;
+                roleContainer.classList.add('hidden');
+            } 
+            else if (room.state === 'ROLE_REVEAL') {
+                roleContainer.classList.remove('hidden');
+                document.getElementById('my-role').innerText = `บทบาทของคุณ: ${myRole}`;
+                
+                if (isDead) {
+                    statusBox.innerText = 'คุณตายแล้ว รอผู้เล่นคนอื่นดำเนินการ';
+                } else {
+                    statusBox.innerText = 'เช็คบทบาทของคุณ และกดพร้อมเพื่อเข้าสู่กลางคืน';
+                    readyBtn.classList.remove('hidden');
+                }
+            }
+            else if (room.state === 'NIGHT_WOLF') {
+                roleContainer.classList.add('hidden');
+                if (myRole && myRole.includes('หมาป่า') && !isDead) {
+                    statusBox.innerText = 'เลือกคนที่คุณต้องการฆ่า!';
+                } else {
+                    statusBox.innerText = 'กลางคืน: หมาป่ากำลังเลือกเหยื่อ...';
+                }
+            }
+            else if (room.state === 'NIGHT_SHERIFF') {
+                if (myRole && myRole.includes('นายอำเภอ') && !isDead) {
+                    statusBox.innerText = 'เลือกคนที่คุณต้องการปกป้อง!';
+                } else {
+                    statusBox.innerText = 'กลางคืน: นายอำเภอกำลังเลือกคนปกป้อง...';
+                }
+                
+                let sheriffAlive = room.players.find(p => p.role && p.role.includes('นายอำเภอ') && p.isAlive);
+                if (!sheriffAlive && myId === room.players[0].id) { 
+                    setTimeout(() => sendNightAction('SKIP', 'SHERIFF_PROTECT'), 4000); 
+                }
+            }
+            else if (room.state === 'DAY_DISCUSSION') {
+                statusBox.innerText = 'กลางวัน: พูดคุยหาตัวหมาป่า';
+                if (!isDead) voteBtn.classList.remove('hidden');
+            }
+            else if (room.state === 'VOTING') {
+                statusBox.innerText = 'โหวต: เลือกคนที่คุณสงสัย';
+            }
+            else if (room.state === 'GAME_OVER') {
+                roleContainer.classList.add('hidden');
+                statusBox.innerText = 'จบเกม! ผู้เล่นกดรีเฟรชหน้าเว็บเพื่อเริ่มใหม่';
+            }
+        }
+
+        function setReady() {
+            socket.emit('playerReady', currentRoom);
+            document.getElementById('ready-btn').classList.add('hidden');
+        }
+
+        function sendNightAction(targetId, actionType) {
+            socket.emit('nightAction', { roomId: currentRoom, targetId, actionType });
+        }
+
+        function startVote() {
+            socket.emit('startVote', currentRoom);
+        }
+
+        function votePlayer(targetId) {
+            socket.emit('votePlayer', { roomId: currentRoom, targetId });
+        }
+    </script>
+</body>
+</html>
