@@ -8,20 +8,14 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 app.use(express.static(path.join(__dirname)));
-
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
+app.get('/', (req, res) => { res.sendFile(path.join(__dirname, 'index.html')); });
 
 const rooms = {};
 
 function broadcastRooms() {
     const roomList = Object.keys(rooms).map(id => ({
-        id: id,
-        currentPlayers: rooms[id].players.length,
-        maxPlayers: rooms[id].maxPlayers,
-        hasPassword: rooms[id].password !== "",
-        state: rooms[id].state
+        id: id, currentPlayers: rooms[id].players.length, maxPlayers: rooms[id].maxPlayers,
+        hasPassword: rooms[id].password !== "", state: rooms[id].state
     })).filter(r => r.state === 'LOBBY');
     io.emit('roomListUpdate', roomList);
 }
@@ -34,12 +28,8 @@ io.on('connection', (socket) => {
         socket.join(roomId);
         rooms[roomId] = {
             players: [{ id: socket.id, name: playerName, isHost: true, isAlive: true, isReady: false }],
-            state: 'LOBBY',
-            maxPlayers: parseInt(maxPlayers),
-            password: password || "",
-            nightActions: { WOLF_KILL: null, GUARD_PROTECT: null },
-            lastGuarded: {},
-            votes: {}
+            state: 'LOBBY', maxPlayers: parseInt(maxPlayers), password: password || "",
+            nightActions: { WOLF_KILL: null, GUARD_PROTECT: null }, lastGuarded: {}, votes: {}
         };
         socket.emit('joined', { roomId, isHost: true });
         io.to(roomId).emit('updateRoom', rooms[roomId]);
@@ -65,11 +55,7 @@ io.on('connection', (socket) => {
             roles = roles.concat(Array(room.players.length - 4).fill("ชาวบ้าน"));
         }
         const shuffled = roles.sort(() => Math.random() - 0.5);
-        room.players.forEach((p, i) => {
-            p.role = shuffled[i];
-            p.isReady = false;
-            p.isAlive = true;
-        });
+        room.players.forEach((p, i) => { p.role = shuffled[i]; p.isReady = false; p.isAlive = true; });
         room.state = 'STARTING';
         io.to(roomId).emit('updateRoom', room);
         broadcastRooms();
@@ -88,31 +74,69 @@ io.on('connection', (socket) => {
             const alive = room.players.filter(x => x.isAlive);
             if (alive.every(x => x.isReady)) {
                 room.players.forEach(x => x.isReady = false);
-                room.state = 'NIGHT_WOLF';
-                room.nightActions = { WOLF_KILL: null, GUARD_PROTECT: null };
-                io.to(roomId).emit('updateRoom', room);
+                startNightPhase(roomId, 'NIGHT_WOLF');
             } else {
                 io.to(roomId).emit('updateRoom', room);
             }
         }
     });
 
+    // ----------------------------------------------------
+    // ฟังก์ชันจัดการกลางคืน (พร้อมระบบข้ามอัตโนมัติถ้าบทนั้นตาย)
+    // ----------------------------------------------------
+    function startNightPhase(roomId, phase) {
+        const room = rooms[roomId];
+        if (!room) return;
+        
+        // รีเซ็ตค่าถ้าเป็นการเริ่มคืนใหม่
+        if (phase === 'NIGHT_WOLF') {
+            room.nightActions = { WOLF_KILL: null, GUARD_PROTECT: null };
+        }
+
+        room.state = phase;
+        io.to(roomId).emit('updateRoom', room);
+
+        let roleName = '';
+        let nextPhase = '';
+        if (phase === 'NIGHT_WOLF') { roleName = 'มนุษย์หมาป่า'; nextPhase = 'NIGHT_SEER'; }
+        else if (phase === 'NIGHT_SEER') { roleName = 'ผู้หยั่งรู้'; nextPhase = 'NIGHT_BODYGUARD'; }
+        else if (phase === 'NIGHT_BODYGUARD') { roleName = 'บอดี้การ์ด'; nextPhase = 'DAY_TIME'; }
+
+        if (roleName) {
+            // เช็คว่าบทบาทนั้นยังมีชีวิตอยู่ไหม
+            const isAlive = room.players.some(p => p.role === roleName && p.isAlive);
+            
+            if (!isAlive) {
+                // ถ้าตายแล้ว ให้รอ 4 วินาที (เพื่อให้เสียงพากย์ทำงานจบ) แล้วข้ามไปบทถัดไปอัตโนมัติ
+                setTimeout(() => {
+                    const currentRoom = rooms[roomId];
+                    if (currentRoom && currentRoom.state === phase) {
+                        if (nextPhase === 'DAY_TIME') {
+                            resolveNight(roomId);
+                        } else {
+                            startNightPhase(roomId, nextPhase);
+                        }
+                    }
+                }, 4000); 
+            }
+        }
+    }
+
     socket.on('nightAction', ({ roomId, targetId, actionType }) => {
         const room = rooms[roomId];
         if (!room) return;
         if (actionType === 'WOLF_KILL') {
             room.nightActions.WOLF_KILL = targetId;
-            room.state = 'NIGHT_SEER';
+            startNightPhase(roomId, 'NIGHT_SEER');
         } else if (actionType === 'SEER_CHECK') {
             const target = room.players.find(x => x.id === targetId);
             socket.emit('seerResult', { name: target.name, result: target.role === 'มนุษย์หมาป่า' ? 'คนร้าย' : 'คนดี' });
-            room.state = 'NIGHT_BODYGUARD';
+            startNightPhase(roomId, 'NIGHT_BODYGUARD');
         } else if (actionType === 'GUARD_PROTECT') {
             room.nightActions.GUARD_PROTECT = targetId;
             room.lastGuarded[socket.id] = targetId;
             resolveNight(roomId);
         }
-        io.to(roomId).emit('updateRoom', room);
     });
 
     function resolveNight(roomId) {
@@ -127,7 +151,6 @@ io.on('connection', (socket) => {
         io.to(roomId).emit('updateRoom', room);
     }
 
-    // --- ระบบโหวต ---
     socket.on('startVoting', (roomId) => {
         const room = rooms[roomId];
         if (!room || room.state === 'VOTING') return;
@@ -135,14 +158,11 @@ io.on('connection', (socket) => {
         room.votes = {};
         io.to(roomId).emit('updateRoom', room);
 
-        let time = 15; // จับเวลาโหวต 15 วินาที
+        let time = 15;
         const timer = setInterval(() => {
             time--;
             io.to(roomId).emit('timerUpdate', time);
-            if (time <= 0) {
-                clearInterval(timer);
-                resolveVote(roomId);
-            }
+            if (time <= 0) { clearInterval(timer); resolveVote(roomId); }
         }, 1000);
     });
 
@@ -150,7 +170,6 @@ io.on('connection', (socket) => {
         const room = rooms[roomId];
         if (room && room.state === 'VOTING') {
             room.votes[socket.id] = targetId;
-            // ส่งจำนวนคนที่โหวตแล้วกลับไป
             io.to(roomId).emit('voteCountUpdate', Object.keys(room.votes).length);
         }
     });
@@ -164,14 +183,9 @@ io.on('connection', (socket) => {
 
         let eliminatedId = null;
         let maxVotes = 0;
-        // หาคนที่ได้คะแนนสูงสุด
         for (let [id, count] of Object.entries(counts)) {
-            if (count > maxVotes && id !== 'SKIP') {
-                maxVotes = count;
-                eliminatedId = id;
-            } else if (count === maxVotes) {
-                eliminatedId = null; // ถ้าคะแนนเท่ากัน = ไม่มีใครออก
-            }
+            if (count > maxVotes && id !== 'SKIP') { maxVotes = count; eliminatedId = id; } 
+            else if (count === maxVotes) { eliminatedId = null; }
         }
 
         let victim = null;
@@ -197,7 +211,7 @@ io.on('connection', (socket) => {
         } else if (wolves.length >= villagers.length) {
             room.state = 'GAME_OVER'; room.winner = 'ฝ่ายหมาป่า ชนะ!';
         } else {
-            room.state = 'ROLE_REVEAL'; // วนกลับไปกดพร้อมใหม่
+            room.state = 'ROLE_REVEAL'; 
             room.players.forEach(p => p.isReady = false);
         }
         io.to(roomId).emit('updateRoom', room);
