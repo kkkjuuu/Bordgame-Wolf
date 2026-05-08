@@ -95,15 +95,15 @@
     let currentGameState = '';
 
     const ROLE_IMG = {
-        "มนุษย์หมาป่า": "https://i.ibb.co/p6V1N5R/wolf.png",
-        "ผู้หยั่งรู้": "https://i.ibb.co/9v8yX7M/seer.png",
-        "บอดี้การ์ด": "https://i.ibb.co/M7y8yX1/guard.png",
-        "ชาวบ้าน": "https://i.ibb.co/tZ5M1mX/villager.png"
+        "มนุษย์หมาป่า": "https://i.postimg.cc/cH4TvQcd/IMG-0044.jpg",
+        "ผู้หยั่งรู้": "https://i.postimg.cc/G2hz4kjr/IMG-0042.jpg",
+        "บอดี้การ์ด": "https://i.postimg.cc/pTXkmDB2/IMG-0043.jpg",
+        "ชาวบ้าน": "https://i.postimg.cc/pdBqV0KX/IMG-0041.jpg"
     };
 
     // --- ระบบสุ่มชื่อ ---
     const RANDOM_NAMES = ["คนเจ๋ง", "ยอดเยี่ยม", "ตัวตึง", "ไอ้บ้า", "หมาป่าเดียวดาย", "นักสืบ", "ผู้บริสุทธิ์", "จอมเวทย์"];
-    function getRandomName() { return RANDOM_NAMES[Math.floor(Math.random() * RANDOM_NAMES.length)] + Math.floor(Math.random() * 99); }
+    function getRandomName() { return RANDOM_NAMES[Math.floor(Math.random() * RANDOM_NAMES.length)] + Math.floor(Math.random() * 10); }
 
     window.onload = () => { document.getElementById('hName').value = getRandomName(); };
 
