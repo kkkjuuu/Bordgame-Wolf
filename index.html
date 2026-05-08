@@ -14,8 +14,9 @@
         button { background: var(--wolf); color: white; cursor: pointer; font-weight: bold; }
         button:disabled { background: #555 !important; cursor: not-allowed; }
         .btn-blue { background: var(--seer); }
+        .btn-green { background: var(--guard); }
         .room-card { background: rgba(255,255,255,0.1); padding: 10px; margin: 10px 0; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; text-align: left; }
-        .player-item { background: rgba(255,255,255,0.1); padding: 10px; margin: 5px 0; border-radius: 8px; display: flex; justify-content: space-between; }
+        .player-item { background: rgba(255,255,255,0.1); padding: 10px; margin: 5px 0; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;}
         .hidden { display: none !important; }
         .card-reveal { width: 220px; height: 320px; margin: 15px auto; perspective: 1000px; }
         .card-inner { position: relative; width: 100%; height: 100%; transition: transform 0.6s; transform-style: preserve-3d; cursor: pointer; }
@@ -76,11 +77,12 @@
         <div id="target-btns"></div>
     </div>
     
+    <!-- หน้าจบเกมและเล่นต่อ -->
     <div id="end-screen" class="hidden">
         <h1 id="win-title" style="font-size: 40px; margin-bottom: 5px;"></h1>
-        <p>ผลสรุปบทบาทผู้เล่นทุกคน:</p>
         <div id="end-roles" style="text-align: left; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; margin-bottom: 20px;"></div>
-        <button onclick="location.reload()">กลับสู่หน้าแรก</button>
+        <button id="play-again-btn" class="btn-green" onclick="playAgain()">เล่นต่อ (Play Again)</button>
+        <button style="background:#555; margin-top:10px;" onclick="location.reload()">ออกไปหน้าแรก</button>
     </div>
     <div class="credit">Card Game Creators by.lilyuux</div>
 </div>
@@ -93,23 +95,24 @@
     let currentGameState = '';
 
     const ROLE_IMG = {
-        "มนุษย์หมาป่า": "https://i.postimg.cc/GmgZtgFK/IMG-0044.jpg",
-        "ผู้หยั่งรู้": "https://i.postimg.cc/W1YQzYG6/IMG-0042.jpg",
-        "บอดี้การ์ด": "https://i.postimg.cc/NjCWFC6x/IMG-0043.jpg",
-        "ชาวบ้าน": "https://i.postimg.cc/rwZvsZ1D/IMG-0041.jpg"
+        "มนุษย์หมาป่า": "https://i.ibb.co/p6V1N5R/wolf.png",
+        "ผู้หยั่งรู้": "https://i.ibb.co/9v8yX7M/seer.png",
+        "บอดี้การ์ด": "https://i.ibb.co/M7y8yX1/guard.png",
+        "ชาวบ้าน": "https://i.ibb.co/tZ5M1mX/villager.png"
     };
 
-    // ------------------------------------
-    // ฟังก์ชันเสียงพากย์ (พูดเฉพาะเครื่อง Host)
-    // ------------------------------------
-    function unlockVoice() {
-        if('speechSynthesis' in window) { window.speechSynthesis.speak(new SpeechSynthesisUtterance("")); }
-    }
+    // --- ระบบสุ่มชื่อ ---
+    const RANDOM_NAMES = ["คนเจ๋ง", "ยอดเยี่ยม", "ตัวตึง", "ไอ้บ้า", "หมาป่าเดียวดาย", "นักสืบ", "ผู้บริสุทธิ์", "จอมเวทย์"];
+    function getRandomName() { return RANDOM_NAMES[Math.floor(Math.random() * RANDOM_NAMES.length)] + Math.floor(Math.random() * 99); }
+
+    window.onload = () => { document.getElementById('hName').value = getRandomName(); };
+
+    // --- ระบบเสียงพากย์ (พูดเฉพาะเครื่อง Host) ---
+    function unlockVoice() { if('speechSynthesis' in window) { window.speechSynthesis.speak(new SpeechSynthesisUtterance("")); } }
     function speakGame(text) {
         if (isHost && 'speechSynthesis' in window) {
             const msg = new SpeechSynthesisUtterance(text);
-            msg.lang = 'th-TH';
-            msg.rate = 0.95;
+            msg.lang = 'th-TH'; msg.rate = 0.95;
             window.speechSynthesis.speak(msg);
         }
     }
@@ -125,14 +128,19 @@
     }
 
     function joinManual() { unlockVoice(); const rid = prompt("ใส่ชื่อห้อง:"); if(rid) joinRoomPrompt(rid, false); }
-    function joinRoomPrompt(rid, hasP) { const n = prompt("ชื่อเล่นของคุณ:"); if(!n) return; socket.emit('joinRoom', { roomId: rid, playerName: n, password: (hasP?prompt("รหัสผ่าน:"): "") }); }
+    function joinRoomPrompt(rid, hasP) { 
+        unlockVoice();
+        const n = prompt("ชื่อเล่นของคุณ:", getRandomName()); 
+        if(!n) return; 
+        socket.emit('joinRoom', { roomId: rid, playerName: n, password: (hasP?prompt("รหัสผ่าน:"): "") }); 
+    }
 
     socket.on('roomListUpdate', (rooms) => {
         const list = document.getElementById('room-list');
         list.innerHTML = rooms.length === 0 ? '<p style="color:#888;">ยังไม่มีใครสร้างห้อง</p>' : rooms.map(r => `
             <div class="room-card">
                 <div><b>${r.id}</b> ${r.hasPassword?'🔒':''}<br><small>คนในห้อง: ${r.currentPlayers}/${r.maxPlayers}</small></div>
-                <button style="width:auto; padding:5px 15px;" class="btn-blue" onclick="unlockVoice(); joinRoomPrompt('${r.id}', ${r.hasPassword})">เข้า</button>
+                <button style="width:auto; padding:5px 15px;" class="btn-blue" onclick="joinRoomPrompt('${r.id}', ${r.hasPassword})">เข้า</button>
             </div>`).join('');
     });
 
@@ -157,7 +165,7 @@
             btn.innerText = room.players.length < 4 ? `ขาดอีก ${4-room.players.length} คน` : "เริ่มเกม";
         }
 
-        // --- เช็คเพื่อเล่นเสียงพากย์ ---
+        // --- ระบบเล่นเสียงพากย์ตาม State ---
         if (room.state !== currentGameState) {
             currentGameState = room.state;
             if (room.state === 'NIGHT_WOLF') speakGame("เข้าสู่กลางคืน มนุษย์หมาป่าลืมตา");
@@ -166,6 +174,11 @@
             else if (room.state === 'DAY_TIME') speakGame("ทุกคนลืมตา เช้าแล้ว");
             else if (room.state === 'VOTING') speakGame("หมดเวลาพูดคุย เริ่มทำการโหวตได้");
             else if (room.state === 'GAME_OVER') speakGame("เกมจบแล้ว " + room.winner);
+        }
+
+        if(room.state === 'STARTING') {
+            lastGuard = ''; // ล้างค่าเผื่อมีการเล่นซ้ำ
+            document.getElementById('seer-notice').classList.add('hidden');
         }
 
         if(room.state === 'ROLE_REVEAL') {
@@ -191,6 +204,7 @@
         }
 
         if(room.state === 'DAY_TIME') {
+            document.getElementById('seer-notice').classList.add('hidden'); // ซ่อนประกาศผู้หยั่งรู้เมื่อเช้า
             const me = room.players.find(p => p.id === socket.id);
             document.getElementById('phase-title').innerText = "☀️ เช้าวันใหม่";
             const btns = document.getElementById('target-btns');
@@ -248,10 +262,24 @@
         if(room.state === 'GAME_OVER') {
             document.getElementById('action-area').classList.add('hidden');
             document.getElementById('end-screen').classList.remove('hidden');
+            
             const title = document.getElementById('win-title');
             title.innerText = room.winner;
             title.style.color = room.winner.includes('หมาป่า') ? 'var(--wolf)' : 'var(--seer)';
-            document.getElementById('end-roles').innerHTML = room.players.map(p => `<p style="margin:5px 0;"><b>${p.name}:</b> ${p.role} ${p.isAlive ? '' : '💀'}</p>`).join('');
+            
+            document.getElementById('end-roles').innerHTML = room.players.map(p => 
+                `<p style="margin:5px 0;"><b>${p.name}:</b> ${p.role} ${p.isAlive ? '' : '💀'} <span style="color:#2ecc71; font-size:12px;">${p.wantsToPlayAgain ? '✅ เล่นต่อ' : ''}</span></p>`
+            ).join('');
+
+            const me = room.players.find(p => p.id === socket.id);
+            const paBtn = document.getElementById('play-again-btn');
+            if (me && me.wantsToPlayAgain) {
+                paBtn.disabled = true;
+                paBtn.innerText = "รอเพื่อนกดเล่นต่อ...";
+            } else {
+                paBtn.disabled = false;
+                paBtn.innerText = "เล่นต่อ (Play Again)";
+            }
         }
     });
 
@@ -275,6 +303,7 @@
         const me = room.players.find(p => p.id === socket.id);
         const title = document.getElementById('phase-title'), btns = document.getElementById('target-btns');
         btns.innerHTML = "";
+        
         if(!me.isAlive) { title.innerText = "คุณตายแล้ว ได้แต่เฝ้าดู..."; return; }
 
         if(room.state === 'NIGHT_WOLF' && myRole === 'มนุษย์หมาป่า') {
@@ -293,10 +322,14 @@
     }
 
     function createBtns(room, type) {
-        room.players.filter(p => p.isAlive && p.id !== socket.id).forEach(p => {
-            if(type === 'GUARD_PROTECT' && p.id === lastGuard) return; 
+        room.players.filter(p => p.isAlive).forEach(p => {
+            // หมาป่าและผู้หยั่งรู้ เลือกตัวเองไม่ได้
+            if ((type === 'WOLF_KILL' || type === 'SEER_CHECK') && p.id === socket.id) return;
+            // บอดี้การ์ด เลือกตัวเองได้ แต่ห้ามเลือกคนเดิมซ้ำติดกัน
+            if (type === 'GUARD_PROTECT' && p.id === lastGuard) return; 
+
             const b = document.createElement('button');
-            b.innerText = p.name;
+            b.innerText = p.name + (p.id === socket.id ? " (ตัวคุณเอง)" : "");
             b.onclick = () => { 
                 if(type === 'GUARD_PROTECT') lastGuard = p.id; 
                 socket.emit('nightAction', { roomId: myRoom, targetId: p.id, actionType: type }); 
@@ -312,7 +345,16 @@
         n.innerText = `ผลการตรวจ: ${d.name} คือ ${d.result}`; 
     });
 
-    function playerReady() { socket.emit('playerReady', myRoom); document.getElementById('ready-btn').disabled = true; document.getElementById('ready-btn').innerText = "รอคนอื่นกดพร้อม..."; }
+    function playerReady() { 
+        socket.emit('playerReady', myRoom); 
+        document.getElementById('ready-btn').disabled = true; 
+        document.getElementById('ready-btn').innerText = "รอคนอื่นกดพร้อม..."; 
+    }
+
+    function playAgain() {
+        socket.emit('playAgain', myRoom);
+    }
+
     function startGame() { socket.emit('startGame', myRoom); }
     socket.on('errorMsg', (m) => alert(m));
 </script>
