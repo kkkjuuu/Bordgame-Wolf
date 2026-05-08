@@ -12,6 +12,13 @@ app.get('/', (req, res) => { res.sendFile(path.join(__dirname, 'index.html')); }
 
 const rooms = {};
 
+// ฟังก์ชันสุ่มชื่ออัตโนมัติ สำหรับ Server
+function generateDefaultName() {
+    const randomNum = Math.floor(Math.random() * 999) + 1;
+    const formattedNum = randomNum.toString().padStart(3, '0');
+    return `wolf#${formattedNum}`;
+}
+
 function broadcastRooms() {
     const roomList = Object.keys(rooms).map(id => ({
         id: id, currentPlayers: rooms[id].players.length, maxPlayers: rooms[id].maxPlayers,
@@ -25,9 +32,16 @@ io.on('connection', (socket) => {
 
     socket.on('createRoom', ({ roomId, playerName, maxPlayers, password }) => {
         if (rooms[roomId]) return socket.emit('errorMsg', 'ชื่อห้องนี้ซ้ำ');
+        
+        // ตรวจสอบชื่อผู้เล่น ถ้าว่างเปล่าให้สุ่มชื่อใหม่
+        let finalPlayerName = playerName;
+        if (!finalPlayerName || finalPlayerName.trim() === "") {
+            finalPlayerName = generateDefaultName();
+        }
+
         socket.join(roomId);
         rooms[roomId] = {
-            players: [{ id: socket.id, name: playerName, isHost: true, isAlive: true, isReady: false, wantsToPlayAgain: false }],
+            players: [{ id: socket.id, name: finalPlayerName, isHost: true, isAlive: true, isReady: false, wantsToPlayAgain: false }],
             state: 'LOBBY', maxPlayers: parseInt(maxPlayers), password: password || "",
             nightActions: { WOLF_KILL: null, GUARD_PROTECT: null }, lastGuarded: {}, votes: {}
         };
@@ -40,8 +54,15 @@ io.on('connection', (socket) => {
         const room = rooms[roomId];
         if (!room) return socket.emit('errorMsg', 'ไม่พบห้อง');
         if (room.password !== "" && room.password !== password) return socket.emit('errorMsg', 'รหัสผ่านผิด');
+        
+        // ตรวจสอบชื่อผู้เล่น ถ้าว่างเปล่าให้สุ่มชื่อใหม่
+        let finalPlayerName = playerName;
+        if (!finalPlayerName || finalPlayerName.trim() === "") {
+            finalPlayerName = generateDefaultName();
+        }
+
         socket.join(roomId);
-        room.players.push({ id: socket.id, name: playerName, isHost: false, isAlive: true, isReady: false, wantsToPlayAgain: false });
+        room.players.push({ id: socket.id, name: finalPlayerName, isHost: false, isAlive: true, isReady: false, wantsToPlayAgain: false });
         socket.emit('joined', { roomId, isHost: false });
         io.to(roomId).emit('updateRoom', room);
         broadcastRooms();
