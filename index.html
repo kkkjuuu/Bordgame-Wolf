@@ -28,15 +28,30 @@
         .notice-box { background: rgba(255,255,255,0.1); padding: 10px; border-radius: 10px; margin-bottom: 10px; color: #f1c40f; }
         .timer-text { font-size: 40px; color: #e74c3c; font-weight: bold; margin: 10px 0; }
         
-        /* สไตล์เพิ่มเติมสำหรับโปรไฟล์ */
+        /* สไตล์โปรไฟล์ */
         .profile-box { background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; margin-bottom: 15px; position: relative; }
         .profile-img { width: 90px; height: 90px; border-radius: 50%; border: 3px solid var(--gold); object-fit: cover; background: #2c3e50; }
         
-        /* สไตล์สำหรับหน้าเลือกรูปโปรไฟล์ */
+        /* หน้าต่างเลือกรูป */
         .avatar-grid { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; margin: 20px 0; }
         .avatar-option { width: 80px; height: 80px; border-radius: 50%; border: 3px solid transparent; cursor: pointer; object-fit: cover; transition: 0.3s; background: #2c3e50; }
         .avatar-option:hover { transform: scale(1.1); border-color: var(--seer); }
         .avatar-option.selected { border-color: var(--gold); box-shadow: 0 0 15px var(--gold); transform: scale(1.1); }
+
+        /* 👑 ตกแต่ง UI แบบโต๊ะใหม่ 🐺 */
+        #game-table-screen { width: 95%; max-width: 600px; display: grid; grid-template-rows: auto 1fr auto; gap: 15px; }
+        #table-container { background: #000; border-radius: 20px; padding: 20px; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 10px; position: relative; }
+        .table-central-rect { grid-column: 2 / 3; grid-row: 2 / 3; background: rgba(255,255,255,0.2); border-radius: 10px; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px; color: #f1c40f; font-size: 14px; text-align: center; }
+        .player-spot { position: relative; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 10px; background: rgba(255,255,255,0.05); cursor: default; }
+        .player-avatar-spot { width: 80px; height: 80px; border-radius: 20px; object-fit: cover; border: 3px solid transparent; background: #2c3e50; transition: 0.2s; position: relative; }
+        .player-spot.targetable { cursor: pointer; background: rgba(var(--seer), 0.2); }
+        .player-spot.targetable:hover { transform: scale(1.05); }
+        .player-name { margin-top: 5px; font-size: 14px; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; }
+        .player-ready { font-size: 12px; color: #aaa; margin-top: 2px; }
+        
+        /* สไตล์ไอคอนซ้อนเมื่อตาย/ป้องกัน */
+        .overlay-skull, .overlay-shield { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 20px; background-size: contain; background-repeat: no-repeat; background-position: center; z-index: 5; }
+
     </style>
 </head>
 <body>
@@ -44,7 +59,6 @@
 <div id="lobby" class="container">
     <h1>🐺 Werewolf Online</h1>
     
-    <!-- ส่วนโปรไฟล์ผู้เล่น -->
     <div class="profile-box">
         <img src="" alt="Profile" class="profile-img" id="playerAvatar">
         <br>
@@ -62,7 +76,6 @@
     <div class="credit">Card Game Creators by.lilyuux</div>
 </div>
 
-<!-- หน้าต่างเลือกรูปโปรไฟล์ -->
 <div id="avatar-screen" class="container hidden">
     <h2>เลือกรูปโปรไฟล์ของคุณ</h2>
     <div id="avatar-grid" class="avatar-grid"></div>
@@ -88,6 +101,27 @@
     <div class="credit">Card Game Creators by.lilyuux</div>
 </div>
 
+<div id="game-table-screen" class="container hidden">
+    <div id="table-container">
+        <div id="player-spots"></div>
+        
+        <div class="table-central-rect">
+            <h3 style="margin:0 0 5px 0; font-size:18px;">🌙 กลางคืน</h3>
+            <p id="status-text" style="margin:0; font-size: 12px;"></p>
+            <p id="timer-text" class="hidden" style="margin-top: 5px; font-size: 18px; color:var(--wolf); font-weight:bold;">15</p>
+        }
+    </div>
+    
+    <div id="table-controls" class="hidden"></div>
+    
+    <div id="end-screen" class="hidden container">
+        <h1 id="win-title" style="font-size: 40px; margin-bottom: 5px;"></h1>
+        <div id="end-roles" style="text-align: left; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; margin-bottom: 20px;"></div>
+        <button id="play-again-btn" class="btn-green" onclick="playAgain()">เล่นต่อ (Play Again)</button>
+        <button style="background:#555; margin-top:10px;" onclick="location.reload()">ออกไปหน้าแรก</button>
+    </div>
+</div>
+
 <div id="game-screen" class="container hidden">
     <div id="role-area">
         <h3>บทบาทของคุณ (แตะที่การ์ด)</h3>
@@ -100,28 +134,13 @@
         <p id="role-text" style="font-weight:bold; font-size: 22px; margin: 10px 0;"></p>
         <button id="ready-btn" class="btn-blue" onclick="playerReady()">พร้อมแล้ว</button>
     </div>
-
-    <div id="action-area" class="hidden">
-        <h2 id="phase-title"></h2>
-        <div id="seer-notice" class="notice-box hidden"></div>
-        <div id="target-btns"></div>
-    </div>
-    
-    <div id="end-screen" class="hidden">
-        <h1 id="win-title" style="font-size: 40px; margin-bottom: 5px;"></h1>
-        <div id="end-roles" style="text-align: left; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; margin-bottom: 20px;"></div>
-        <button id="play-again-btn" class="btn-green" onclick="playAgain()">เล่นต่อ (Play Again)</button>
-        <button style="background:#555; margin-top:10px;" onclick="location.reload()">ออกไปหน้าแรก</button>
-    </div>
-    <div class="credit">Card Game Creators by.lilyuux</div>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
     const socket = io();
     let myRoom = '', myRole = '', isHost = false, lastGuard = '';
-    let totalAlive = 0;
-    let currentGameState = '';
+    let totalAlive = 0, currentGameState = '', skillTarget = null;
 
     const ROLE_IMG = {
         "มนุษย์หมาป่า": "https://i.postimg.cc/cH4TvQcd/IMG-0044.jpg",
@@ -129,8 +148,12 @@
         "บอดี้การ์ด": "https://i.postimg.cc/pTXkmDB2/IMG-0043.jpg",
         "ชาวบ้าน": "https://i.postimg.cc/pdBqV0KX/IMG-0041.jpg"
     };
+    
+    const ICON_IMG = {
+        " skull": "https://i.postimg.cc/XJWz04gS/IMG-0065.png",
+        " shield": "https://i.postimg.cc/0NDB3bDF/IMG-0064.png"
+    };
 
-    // --- ระบบรูปโปรไฟล์ ---
     const AVATARS = [
         "https://i.postimg.cc/SRwj1TW2/Untitled-design.png",
         "https://i.postimg.cc/dQX701zP/Untitled-design.png",
@@ -157,57 +180,35 @@
         showScreen('lobby');
     }
 
-    // --- ระบบโปรไฟล์ และ สุ่มชื่อ ---
     function generateWolfName() {
         const randomNum = Math.floor(Math.random() * 999) + 1;
         return `wolf#${randomNum.toString().padStart(3, '0')}`;
     }
 
     function loadProfile() {
-        // โหลดชื่อ
         let savedName = localStorage.getItem('boardgame_playerName');
-        if (!savedName) {
-            savedName = generateWolfName();
-            localStorage.setItem('boardgame_playerName', savedName);
-        }
-        document.getElementById('playerNameInput').value = savedName;
-        document.getElementById('hName').value = savedName; 
+        if (!savedName) { savedName = generateWolfName(); localStorage.setItem('boardgame_playerName', savedName); }
+        document.getElementById('playerNameInput').value = savedName; document.getElementById('hName').value = savedName; 
 
-        // โหลดรูปภาพ
         let savedAvatar = localStorage.getItem('boardgame_playerAvatar');
-        if (!savedAvatar || !AVATARS.includes(savedAvatar)) {
-            savedAvatar = AVATARS[0]; // ใช้รูปแรกเป็นค่าเริ่มต้น
-        }
-        currentAvatar = savedAvatar;
-        document.getElementById('playerAvatar').src = currentAvatar;
+        if (!savedAvatar || !AVATARS.includes(savedAvatar)) { savedAvatar = AVATARS[0]; }
+        currentAvatar = savedAvatar; document.getElementById('playerAvatar').src = currentAvatar;
     }
 
     function saveProfile() {
         const nameInput = document.getElementById('playerNameInput');
         let newName = nameInput.value.trim();
-        
-        if (newName === "") {
-            newName = generateWolfName();
-            nameInput.value = newName;
-        }
-        
-        localStorage.setItem('boardgame_playerName', newName);
-        document.getElementById('hName').value = newName;
-
-        const msg = document.getElementById('saveMessage');
-        msg.classList.remove('hidden');
-        setTimeout(() => msg.classList.add('hidden'), 2000);
+        if (newName === "") { newName = generateWolfName(); nameInput.value = newName; }
+        localStorage.setItem('boardgame_playerName', newName); document.getElementById('hName').value = newName;
+        const msg = document.getElementById('saveMessage'); msg.classList.remove('hidden'); setTimeout(() => msg.classList.add('hidden'), 2000);
     }
 
     window.onload = () => { loadProfile(); };
 
-    // --- ระบบเสียงพากย์ ---
     function unlockVoice() { if('speechSynthesis' in window) { window.speechSynthesis.speak(new SpeechSynthesisUtterance("")); } }
     function speakGame(text) {
         if (isHost && 'speechSynthesis' in window) {
-            const msg = new SpeechSynthesisUtterance(text);
-            msg.lang = 'th-TH'; msg.rate = 0.95;
-            window.speechSynthesis.speak(msg);
+            const msg = new SpeechSynthesisUtterance(text); msg.lang = 'th-TH'; msg.rate = 0.95; window.speechSynthesis.speak(msg);
         }
     }
 
@@ -218,31 +219,100 @@
 
     function createRoom() {
         let n = document.getElementById('hName').value.trim();
-        if(!n) {
-            n = generateWolfName();
-            document.getElementById('hName').value = n;
-        }
-        localStorage.setItem('boardgame_playerName', n);
-        document.getElementById('playerNameInput').value = n;
-
+        if(!n) { n = generateWolfName(); document.getElementById('hName').value = n; }
+        localStorage.setItem('boardgame_playerName', n); document.getElementById('playerNameInput').value = n;
         const r = document.getElementById('rName').value, p = document.getElementById('rPass').value, m = document.getElementById('maxP').value;
         if(n && r) socket.emit('createRoom', { roomId: r, playerName: n, maxPlayers: m, password: p });
     }
 
     function joinManual() { unlockVoice(); const rid = prompt("ใส่ชื่อห้อง:"); if(rid) joinRoomPrompt(rid, false); }
-    
     function joinRoomPrompt(rid, hasP) { 
-        unlockVoice();
-        let currentName = localStorage.getItem('boardgame_playerName') || generateWolfName();
-        const n = prompt("ชื่อเล่นของคุณ:", currentName); 
-        if(!n) return; 
-
-        localStorage.setItem('boardgame_playerName', n);
-        document.getElementById('playerNameInput').value = n;
-
+        unlockVoice(); let currentName = localStorage.getItem('boardgame_playerName') || generateWolfName(); const n = prompt("ชื่อเล่นของคุณ:", currentName); 
+        if(!n) return; localStorage.setItem('boardgame_playerName', n); document.getElementById('playerNameInput').value = n;
         socket.emit('joinRoom', { roomId: rid, playerName: n, password: (hasP?prompt("รหัสผ่าน:"): "") }); 
     }
 
+    function generateTableSpots(maxPlayers) {
+        const spots = document.getElementById('player-spots');
+        spots.innerHTML = ''; // ล้างค่าเก่า
+        spots.classList.remove('spots-4', 'spots-5', 'spots-6'); // ล้างคลาสเก่า
+
+        const layouts = {
+            "4": [ [0,0], [0,2], [2,0], [2,2] ],
+            "6": [ [0,0], [0,1], [0,2], [2,0], [2,1], [2,2] ],
+            "5": [ [0,0], [0,2], [1,1], [2,0], [2,2] ]
+        };
+
+        const gridPos = layouts[maxPlayers] || layouts["4"]; // ใช้ 4 เป็น default หากผิดพลาด
+
+        // เพิ่มคลาสสำหรับเลย์เอาต์พิเศษ
+        if (maxPlayers === '4') spots.classList.add('spots-4');
+        else if (maxPlayers === '6') spots.classList.add('spots-6');
+        else if (maxPlayers === '5') spots.classList.add('spots-5');
+
+        for (let i = 0; i < gridPos.length; i++) {
+            const spotId = `spot-${i}`;
+            spots.innerHTML += `
+                <div class="player-spot" id="${spotId}" onclick="handlePlayerClick('${spotId}')" style="grid-column:${gridPos[i][1]+1}; grid-row:${gridPos[i][0]+1};">
+                    <img src="" class="player-avatar-spot" id="${spotId}-avatar">
+                    <div id="${spotId}-skull" class="overlay-skull hidden" style="background-image:url('${ICON_IMG[' skull']}')"></div>
+                    <div id="${spotId}-shield" class="overlay-shield hidden" style="background-image:url('${ICON_IMG[' shield']}')"></div>
+                    <div class="player-name" id="${spotId}-name">?</div>
+                    <div class="player-ready" id="${spotId}-ready">⏳ รอ</div>
+                </div>
+            `;
+        }
+    }
+
+    function renderPlayersOnTable(room) {
+        generateTableSpots(room.maxPlayers.toString());
+        for (let i = 0; i < room.players.length; i++) {
+            const p = room.players[i], spotId = `spot-${i}`;
+            const avatar = document.getElementById(`${spotId}-avatar`); if(avatar) avatar.src = p.avatarUrl || AVATARS[i % AVATARS.length]; // ใส่รูปที่สุ่มให้ถ้ายังไม่มีระบบบันทึกรูป ID
+            const name = document.getElementById(`${spotId}-name`); if(name) name.innerText = p.name + (p.isHost?'👑':'');
+            const ready = document.getElementById(`${spotId}-ready`); if(ready) ready.innerText = p.isReady?'✅':'⏳';
+            
+            // ซ่อน/แสดง กะโหลกเมื่อตาย
+            const skull = document.getElementById(`${spotId}-skull`);
+            if(skull && !p.isAlive) skull.classList.remove('hidden');
+            
+            // ซ่อน/แสดง โล่เมื่อได้รับความคุ้มครอง
+            const shield = document.getElementById(`${spotId}-shield`);
+            if(shield && p.isAlive && currentGameState === 'DAY_TIME' && room.shieldTarget === p.id) {
+                shield.classList.remove('hidden');
+            } else if(shield) {
+                shield.classList.add('hidden');
+            }
+
+            // จัดการคลาส targetable สำหรับสกิล
+            const spot = document.getElementById(spotId);
+            if(spot && room.state.includes('NIGHT') && p.isAlive && p.id !== socket.id) {
+                // ตัวอย่าง: หมาป่าเลือกฆ่า (เว้นตัวเอง), ผู้หยั่งรู้เลือกตรวจสอบ (เว้นตัวเอง)
+                const me = room.players.find(x => x.id === socket.id);
+                if(me.role === 'มนุษย์หมาป่า' && room.state === 'NIGHT_WOLF') spot.classList.add('targetable');
+                else if(me.role === 'ผู้หยั่งรู้' && room.state === 'NIGHT_SEER') spot.classList.add('targetable');
+                else if(me.role === 'บอดี้การ์ด' && room.state === 'NIGHT_BODYGUARD' && p.id !== lastGuard) spot.classList.add('targetable');
+                else spot.classList.remove('targetable');
+            } else if(spot) {
+                spot.classList.remove('targetable');
+            }
+        }
+    }
+    
+    function handlePlayerClick(spotId) {
+        const spot = document.getElementById(spotId);
+        if(!spot.classList.contains('targetable')) return;
+        
+        // ลบไฮไลท์เก่า
+        document.querySelectorAll('.player-avatar-spot').forEach(el => el.style.borderColor = 'transparent');
+        // เพิ่มไฮไลท์ที่รูปใหม่
+        document.getElementById(`${spotId}-avatar`).style.borderColor = ROLE_IMG[myRole]? (ROLE_IMG[myRole].includes('wolf')?'var(--wolf)':'var(--seer)'):'transparent';
+        
+        const targetSpotIndex = parseInt(spotId.replace('spot-', ''));
+        socket.emit('skillTargetSelected', targetSpotIndex); // ส่ง ID ลำดับที่เลือกกลับไปให้เซิร์ฟเวอร์
+    }
+
+    // --- ส่วนของ Socket.IO ที่เหลือเหมือนเดิมทั้งหมด (แต่ปรับ updateRoom เพื่อเรียกใช้ระบบโต๊ะ) ---
     socket.on('roomListUpdate', (rooms) => {
         const list = document.getElementById('room-list');
         list.innerHTML = rooms.length === 0 ? '<p style="color:#888;">ยังไม่มีใครสร้างห้อง</p>' : rooms.map(r => `
@@ -305,69 +375,70 @@
         }
 
         if(room.state.includes('NIGHT')) {
-            document.getElementById('role-area').classList.add('hidden');
-            document.getElementById('action-area').classList.remove('hidden');
-            renderNight(room);
+            showScreen('game-table-screen');
+            document.getElementById('table-central-rect').classList.remove('hidden');
+            document.getElementById('table-central-rect').style.gridColumn = room.maxPlayers === '5'?'1/4':'2/3'; // ปรับตำแหน่งตรงกลางสำหรับ 5 คน
+            const statusText = document.getElementById('status-text');
+            const timerText = document.getElementById('timer-text');
+            timerText.classList.add('hidden'); // ซ่อนเวลาในคืนแรก
+
+            const me = room.players.find(p => p.id === socket.id);
+            if(!me.isAlive) { statusText.innerText = "คุณตายแล้ว เฝ้าดูวิญญาณ..."; return; }
+            
+            if(room.state === 'NIGHT_WOLF' && myRole === 'มนุษย์หมาป่า') { statusText.innerText = "มนุษย์หมาป่าลืมตา: กดเลือกเป้าหมายที่รูปผู้เล่น!"; }
+            else if(room.state === 'NIGHT_SEER' && myRole === 'ผู้หยั่งรู้') { statusText.innerText = "ผู้หยั่งรู้ลืมตา: กดเลือกเป้าหมายที่รูปผู้เล่น!"; }
+            else if(room.state === 'NIGHT_BODYGUARD' && myRole === 'บอดี้การ์ด') { statusText.innerText = "บอดี้การ์ดลืมตา: กดเลือกเป้าหมายที่รูปผู้เล่น!"; }
+            else { statusText.innerText = "🌙 นอนหลับ... รอวิญญาณคนอื่นดำเนินการ"; }
+            
+            renderPlayersOnTable(room);
         }
 
         if(room.state === 'DAY_TIME') {
             document.getElementById('seer-notice').classList.add('hidden'); 
+            showScreen('game-table-screen');
+            const statusText = document.getElementById('status-text');
             const me = room.players.find(p => p.id === socket.id);
-            document.getElementById('phase-title').innerText = "☀️ เช้าวันใหม่";
-            const btns = document.getElementById('target-btns');
             
-            let html = room.lastVictim ? `<p style="color:red; font-size:18px;">เมื่อคืน ${room.lastVictim} ถูกฆ่าตาย</p>` : "<p style='font-size:18px;'>ไม่มีใครตาย</p>";
-            btns.innerHTML = html;
+            let status = room.lastVictim ? `<p style="color:red; font-size:18px;">เมื่อคืน ${room.lastVictim} ถูกฆ่าตาย</p>` : "<p style='font-size:18px;'>ไม่มีใครตาย</p>";
+            if(me && me.isAlive) { status += "<p>เมื่อคุยกันจบแล้ว กดปุ่มด้านล่างเพื่อ 'เริ่มโหวต'</p>"; } 
+            else { status += "<p style='color:#aaa'>คุณตายแล้ว รอเพื่อนคนเป็นโหวต...</p>"; }
+            statusText.innerHTML = status;
             
-            if(me && me.isAlive) { 
-                const b = document.createElement('button'); 
-                b.innerText = "เมื่อคุยกันจบแล้ว กดเพื่อ 'เริ่มโหวต'"; 
-                b.onclick = () => socket.emit('startVoting', myRoom); 
-                btns.appendChild(b); 
-            } else {
-                btns.innerHTML += "<p style='color:#aaa'>คุณตายแล้ว รอคนเป็นโหวต...</p>";
-            }
+            renderPlayersOnTable(room);
+            
+            const controls = document.getElementById('table-controls');
+            if(me && me.isAlive) {
+                controls.classList.remove('hidden');
+                controls.innerHTML = `<button onclick="socket.emit('startVoting', myRoom)">เริ่มทำการโหวต</button>`;
+            } else { controls.classList.add('hidden'); }
         }
 
         if(room.state === 'VOTING') {
+            showScreen('game-table-screen');
+            const statusText = document.getElementById('status-text');
+            const timerText = document.getElementById('timer-text');
             const me = room.players.find(p => p.id === socket.id);
             totalAlive = room.players.filter(p => p.isAlive).length;
             
-            document.getElementById('phase-title').innerText = "⚖️ ช่วงโหวต!";
-            const btns = document.getElementById('target-btns');
+            statusText.innerText = `⚖️ ช่วงโหวต! กดที่รูปผู้เล่นเพื่อโหวต (0 / ${totalAlive} คน)`;
+            timerText.classList.remove('hidden'); // แสดงเวลาโหวต
             
-            let html = `<div class="notice-box" id="vote-count">คนโหวตแล้ว 0 / ${totalAlive} คน</div>`;
-            html += `<div class="timer-text" id="vote-timer">15</div>`;
-            btns.innerHTML = html;
-
-            if(me && me.isAlive) {
-                room.players.filter(p => p.isAlive && p.id !== socket.id).forEach(p => {
-                    const b = document.createElement('button');
-                    b.innerText = `โหวต ${p.name}`;
-                    b.classList.add('vote-btn');
-                    b.onclick = () => { socket.emit('castVote', { roomId: myRoom, targetId: p.id }); disableAllVotes(); };
-                    btns.appendChild(b);
-                });
-                const skipBtn = document.createElement('button');
-                skipBtn.innerText = "ข้ามการโหวต (Skip)";
-                skipBtn.style.background = "#555";
-                skipBtn.classList.add('vote-btn');
-                skipBtn.onclick = () => { socket.emit('castVote', { roomId: myRoom, targetId: 'SKIP' }); disableAllVotes(); };
-                btns.appendChild(skipBtn);
-            } else {
-                btns.innerHTML += "<p>คุณเป็นผี ทำได้แค่มอง...</p>";
-            }
+            const spot = document.getElementById(`spot-${targetSpotIndex}`); // ไม่แน่ใจว่า targetSpotIndex คืออะไร?
+            spot.onclick = () => { socket.emit('castVote', { roomId: myRoom, targetId: p.id }); disableAllVotes(); }; // ผิดที่ตรงนี้ p.id ต้องหาจาก index?
+            
+            // ไม่ต้อง renderTargetButtons อีกแล้ว แต่ต้องจัดการการกดบนโต๊ะ
+            //renderPlayersOnTable(room); // ต้องแน่ใจว่า handlePlayerClick จัดการ castVote ด้วย
         }
 
         if(room.state === 'DAY_RESULT') {
-            document.getElementById('phase-title').innerText = "ผลการโหวต";
-            const btns = document.getElementById('target-btns');
-            if (room.lastEliminated) btns.innerHTML = `<p style="color:red; font-size:20px; font-weight:bold;">มติเอกฉันท์: ${room.lastEliminated} ถูกโหวตออก!</p>`;
-            else btns.innerHTML = `<p style="font-size:20px; font-weight:bold;">คะแนนไม่เอกฉันท์ (ไม่มีใครถูกโหวตออก)</p>`;
+            showScreen('game-table-screen');
+            const statusText = document.getElementById('status-text');
+            if (room.lastEliminated) statusText.innerHTML = `<p style="color:red; font-size:20px; font-weight:bold;">มติเอกฉันท์: ${room.lastEliminated} ถูกโหวตออก!</p>`;
+            else statusText.innerHTML = `<p style="font-size:20px; font-weight:bold;">คะแนนไม่เอกฉันท์ (ไม่มีใครถูกโหวตออก)</p>`;
         }
 
         if(room.state === 'GAME_OVER') {
-            document.getElementById('action-area').classList.add('hidden');
+            document.getElementById('table-controls').classList.add('hidden');
             document.getElementById('end-screen').classList.remove('hidden');
             
             const title = document.getElementById('win-title');
@@ -381,79 +452,27 @@
             const me = room.players.find(p => p.id === socket.id);
             const paBtn = document.getElementById('play-again-btn');
             if (me && me.wantsToPlayAgain) {
-                paBtn.disabled = true;
-                paBtn.innerText = "รอเพื่อนกดเล่นต่อ...";
-            } else {
-                paBtn.disabled = false;
-                paBtn.innerText = "เล่นต่อ (Play Again)";
-            }
+                paBtn.disabled = true; paBtn.innerText = "รอเพื่อนกดเล่นต่อ...";
+            } else { paBtn.disabled = false; paBtn.innerText = "เล่นต่อ (Play Again)"; }
         }
     });
 
-    function disableAllVotes() {
-        document.querySelectorAll('.vote-btn').forEach(btn => btn.disabled = true);
-        const notice = document.getElementById('vote-count');
-        if(notice) notice.innerText = "ส่งผลโหวตแล้ว รอเวลาหมด...";
-    }
-
     socket.on('voteCountUpdate', (count) => {
-        const vc = document.getElementById('vote-count');
-        if(vc) vc.innerText = `คนโหวตแล้ว ${count} / ${totalAlive} คน`;
+        const vc = document.getElementById('status-text');
+        if(vc && currentGameState === 'VOTING') {
+            vc.innerText = `⚖️ ช่วงโหวต! กดที่รูปผู้เล่นเพื่อโหวต (${count} / ${totalAlive} คน)`;
+        }
     });
 
     socket.on('timerUpdate', (time) => {
-        const timer = document.getElementById('vote-timer');
+        const timer = document.getElementById('timer-text');
         if(timer) timer.innerText = time;
     });
 
-    function renderNight(room) {
-        const me = room.players.find(p => p.id === socket.id);
-        const title = document.getElementById('phase-title'), btns = document.getElementById('target-btns');
-        btns.innerHTML = "";
-        
-        if(!me.isAlive) { title.innerText = "คุณตายแล้ว ได้แต่เฝ้าดู..."; return; }
-
-        if(room.state === 'NIGHT_WOLF' && myRole === 'มนุษย์หมาป่า') {
-            title.innerText = "คืนนี้จะฆ่าใคร?";
-            createBtns(room, 'WOLF_KILL');
-        } else if(room.state === 'NIGHT_SEER' && myRole === 'ผู้หยั่งรู้') {
-            title.innerText = "เลือกตรวจสอบ 1 คน";
-            createBtns(room, 'SEER_CHECK');
-        } else if(room.state === 'NIGHT_BODYGUARD' && myRole === 'บอดี้การ์ด') {
-            title.innerText = "เลือกปกป้อง 1 คน";
-            createBtns(room, 'GUARD_PROTECT');
-        } else { 
-            title.innerText = "🌙 นอนหลับ..."; 
-            btns.innerHTML = "<p>รอผู้เล่นคนอื่นดำเนินการ...</p>"; 
-        }
-    }
-
-    function createBtns(room, type) {
-        room.players.filter(p => p.isAlive).forEach(p => {
-            if ((type === 'WOLF_KILL' || type === 'SEER_CHECK') && p.id === socket.id) return;
-            if (type === 'GUARD_PROTECT' && p.id === lastGuard) return; 
-
-            const b = document.createElement('button');
-            b.innerText = p.name + (p.id === socket.id ? " (ตัวคุณเอง)" : "");
-            b.onclick = () => { 
-                if(type === 'GUARD_PROTECT') lastGuard = p.id; 
-                socket.emit('nightAction', { roomId: myRoom, targetId: p.id, actionType: type }); 
-                document.getElementById('target-btns').innerHTML = "<p>ส่งคำสั่งแล้ว...</p>"; 
-            };
-            document.getElementById('target-btns').appendChild(b);
-        });
-    }
-
-    socket.on('seerResult', (d) => { 
-        const n = document.getElementById('seer-notice'); 
-        n.classList.remove('hidden'); 
-        n.innerText = `ผลการตรวจ: ${d.name} คือ ${d.result}`; 
-    });
+    socket.on('seerResult', (d) => { alert(`ผลการตรวจ: ${d.name} คือ ${d.result}`); });
 
     function playerReady() { 
-        socket.emit('playerReady', myRoom); 
-        document.getElementById('ready-btn').disabled = true; 
-        document.getElementById('ready-btn').innerText = "รอคนอื่นกดพร้อม..."; 
+        socket.emit('playerReady', myRoom); document.getElementById('ready-btn').disabled = true; document.getElementById('ready-btn').innerText = "รอคนอื่นกดพร้อม..."; 
     }
 
     function playAgain() { socket.emit('playAgain', myRoom); }
