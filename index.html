@@ -26,12 +26,26 @@
         .card-back { transform: rotateY(180deg); background-size: cover; background-position: center; }
         .notice-box { background: rgba(255,255,255,0.1); padding: 10px; border-radius: 10px; margin-bottom: 10px; color: #f1c40f; }
         .timer-text { font-size: 40px; color: #e74c3c; font-weight: bold; margin: 10px 0; }
+        
+        /* สไตล์เพิ่มเติมสำหรับโปรไฟล์ */
+        .profile-box { background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; margin-bottom: 15px; }
+        .profile-img { width: 80px; height: 80px; border-radius: 50%; border: 3px solid var(--gold); object-fit: cover; }
     </style>
 </head>
 <body>
 
 <div id="lobby" class="container">
     <h1>🐺 Werewolf Online</h1>
+    
+    <!-- ส่วนโปรไฟล์ผู้เล่น -->
+    <div class="profile-box">
+        <!-- คุณสามารถเปลี่ยน src เป็นรูปภาพที่คุณเตรียมไว้ได้ในภายหลัง -->
+        <img src="https://via.placeholder.com/80/2c3e50/f1c40f?text=Wolf" alt="Profile" class="profile-img">
+        <input type="text" id="playerNameInput" placeholder="ตั้งชื่อของคุณ..." maxlength="15" style="text-align: center; margin-top: 10px;">
+        <button onclick="saveProfile()" class="btn-green" style="margin-top: 5px; padding: 8px;">💾 บันทึกโปรไฟล์</button>
+        <p id="saveMessage" class="hidden" style="color: var(--guard); font-size: 14px; margin-top: 5px; font-weight: bold;">บันทึกชื่อเรียบร้อย!</p>
+    </div>
+
     <button onclick="showScreen('create-screen'); unlockVoice();">สร้างห้อง</button>
     <button class="btn-blue" onclick="joinManual()">เข้าร่วมด้วยรหัสห้อง</button>
     <hr style="opacity: 0.3; margin: 15px 0;">
@@ -77,7 +91,6 @@
         <div id="target-btns"></div>
     </div>
     
-    <!-- หน้าจบเกมและเล่นต่อ -->
     <div id="end-screen" class="hidden">
         <h1 id="win-title" style="font-size: 40px; margin-bottom: 5px;"></h1>
         <div id="end-roles" style="text-align: left; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; margin-bottom: 20px;"></div>
@@ -101,13 +114,46 @@
         "ชาวบ้าน": "https://i.postimg.cc/pdBqV0KX/IMG-0041.jpg"
     };
 
-    // --- ระบบสุ่มชื่อ ---
-    const RANDOM_NAMES = ["คนเจ๋ง", "ยอดเยี่ยม", "ตัวตึง", "ไอ้บ้า", "หมาป่าเดียวดาย", "นักสืบ", "ผู้บริสุทธิ์", "จอมเวทย์"];
-    function getRandomName() { return RANDOM_NAMES[Math.floor(Math.random() * RANDOM_NAMES.length)] + Math.floor(Math.random() * 10); }
+    // --- ระบบโปรไฟล์ และ สุ่มชื่อใหม่ (wolf#001 - 999) ---
+    function generateWolfName() {
+        const randomNum = Math.floor(Math.random() * 999) + 1;
+        return `wolf#${randomNum.toString().padStart(3, '0')}`;
+    }
 
-    window.onload = () => { document.getElementById('hName').value = getRandomName(); };
+    function loadProfile() {
+        let savedName = localStorage.getItem('boardgame_playerName');
+        if (!savedName) {
+            savedName = generateWolfName();
+            localStorage.setItem('boardgame_playerName', savedName);
+        }
+        document.getElementById('playerNameInput').value = savedName;
+        document.getElementById('hName').value = savedName; // ใส่ชื่อลงในช่องสร้างห้องด้วย
+    }
 
-    // --- ระบบเสียงพากย์ (พูดเฉพาะเครื่อง Host) ---
+    function saveProfile() {
+        const nameInput = document.getElementById('playerNameInput');
+        let newName = nameInput.value.trim();
+        
+        // ถ้าปล่อยว่างไว้ ให้สุ่มชื่อให้ใหม่
+        if (newName === "") {
+            newName = generateWolfName();
+            nameInput.value = newName;
+        }
+        
+        // บันทึกลงเครื่อง
+        localStorage.setItem('boardgame_playerName', newName);
+        document.getElementById('hName').value = newName; // อัปเดตช่องสร้างห้อง
+
+        // แสดงข้อความยืนยัน
+        const msg = document.getElementById('saveMessage');
+        msg.classList.remove('hidden');
+        setTimeout(() => msg.classList.add('hidden'), 2000);
+    }
+
+    // โหลดโปรไฟล์ทันทีเมื่อเปิดหน้าเว็บ
+    window.onload = () => { loadProfile(); };
+
+    // --- ระบบเสียงพากย์ ---
     function unlockVoice() { if('speechSynthesis' in window) { window.speechSynthesis.speak(new SpeechSynthesisUtterance("")); } }
     function speakGame(text) {
         if (isHost && 'speechSynthesis' in window) {
@@ -123,18 +169,37 @@
     }
 
     function createRoom() {
-        const n = document.getElementById('hName').value, r = document.getElementById('rName').value, p = document.getElementById('rPass').value, m = document.getElementById('maxP').value;
+        // ดึงชื่อที่ตั้งไว้มาใช้ ถ้าไม่มีให้สุ่มใหม่
+        let n = document.getElementById('hName').value.trim();
+        if(!n) {
+            n = generateWolfName();
+            document.getElementById('hName').value = n;
+        }
+        
+        // เซฟชื่อลงโปรไฟล์ด้วยเผื่อผู้เล่นเปลี่ยนชื่อในหน้าสร้างห้อง
+        localStorage.setItem('boardgame_playerName', n);
+        document.getElementById('playerNameInput').value = n;
+
+        const r = document.getElementById('rName').value, p = document.getElementById('rPass').value, m = document.getElementById('maxP').value;
         if(n && r) socket.emit('createRoom', { roomId: r, playerName: n, maxPlayers: m, password: p });
     }
 
     function joinManual() { unlockVoice(); const rid = prompt("ใส่ชื่อห้อง:"); if(rid) joinRoomPrompt(rid, false); }
+    
     function joinRoomPrompt(rid, hasP) { 
         unlockVoice();
-        const n = prompt("ชื่อเล่นของคุณ:", getRandomName()); 
+        let currentName = localStorage.getItem('boardgame_playerName') || generateWolfName();
+        const n = prompt("ชื่อเล่นของคุณ:", currentName); 
         if(!n) return; 
+
+        // บันทึกชื่อที่กรอกตอนเข้าห้องลงโปรไฟล์ด้วย
+        localStorage.setItem('boardgame_playerName', n);
+        document.getElementById('playerNameInput').value = n;
+
         socket.emit('joinRoom', { roomId: rid, playerName: n, password: (hasP?prompt("รหัสผ่าน:"): "") }); 
     }
 
+    // --- ส่วนของ Socket.IO ที่เหลือเหมือนเดิมทั้งหมด ---
     socket.on('roomListUpdate', (rooms) => {
         const list = document.getElementById('room-list');
         list.innerHTML = rooms.length === 0 ? '<p style="color:#888;">ยังไม่มีใครสร้างห้อง</p>' : rooms.map(r => `
@@ -165,7 +230,6 @@
             btn.innerText = room.players.length < 4 ? `ขาดอีก ${4-room.players.length} คน` : "เริ่มเกม";
         }
 
-        // --- ระบบเล่นเสียงพากย์ตาม State ---
         if (room.state !== currentGameState) {
             currentGameState = room.state;
             if (room.state === 'NIGHT_WOLF') speakGame("เข้าสู่กลางคืน มนุษย์หมาป่าลืมตา");
@@ -177,7 +241,7 @@
         }
 
         if(room.state === 'STARTING') {
-            lastGuard = ''; // ล้างค่าเผื่อมีการเล่นซ้ำ
+            lastGuard = '';
             document.getElementById('seer-notice').classList.add('hidden');
         }
 
@@ -204,7 +268,7 @@
         }
 
         if(room.state === 'DAY_TIME') {
-            document.getElementById('seer-notice').classList.add('hidden'); // ซ่อนประกาศผู้หยั่งรู้เมื่อเช้า
+            document.getElementById('seer-notice').classList.add('hidden'); 
             const me = room.players.find(p => p.id === socket.id);
             document.getElementById('phase-title').innerText = "☀️ เช้าวันใหม่";
             const btns = document.getElementById('target-btns');
@@ -323,9 +387,7 @@
 
     function createBtns(room, type) {
         room.players.filter(p => p.isAlive).forEach(p => {
-            // หมาป่าและผู้หยั่งรู้ เลือกตัวเองไม่ได้
             if ((type === 'WOLF_KILL' || type === 'SEER_CHECK') && p.id === socket.id) return;
-            // บอดี้การ์ด เลือกตัวเองได้ แต่ห้ามเลือกคนเดิมซ้ำติดกัน
             if (type === 'GUARD_PROTECT' && p.id === lastGuard) return; 
 
             const b = document.createElement('button');
@@ -351,10 +413,7 @@
         document.getElementById('ready-btn').innerText = "รอคนอื่นกดพร้อม..."; 
     }
 
-    function playAgain() {
-        socket.emit('playAgain', myRoom);
-    }
-
+    function playAgain() { socket.emit('playAgain', myRoom); }
     function startGame() { socket.emit('startGame', myRoom); }
     socket.on('errorMsg', (m) => alert(m));
 </script>
