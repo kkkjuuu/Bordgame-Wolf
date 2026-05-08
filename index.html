@@ -11,7 +11,8 @@
         .container { background: #16213e; padding: 20px; border-radius: 20px; width: 90%; max-width: 400px; margin: 20px auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         .credit { font-size: 12px; color: #888; margin-top: 15px; }
         input, select, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: none; font-size: 16px; font-family: 'Kanit'; box-sizing: border-box; }
-        button { background: var(--wolf); color: white; cursor: pointer; font-weight: bold; }
+        button { background: var(--wolf); color: white; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        button:hover { filter: brightness(1.1); }
         button:disabled { background: #555 !important; cursor: not-allowed; }
         .btn-blue { background: var(--seer); }
         .btn-green { background: var(--guard); }
@@ -28,8 +29,14 @@
         .timer-text { font-size: 40px; color: #e74c3c; font-weight: bold; margin: 10px 0; }
         
         /* สไตล์เพิ่มเติมสำหรับโปรไฟล์ */
-        .profile-box { background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; margin-bottom: 15px; }
-        .profile-img { width: 80px; height: 80px; border-radius: 50%; border: 3px solid var(--gold); object-fit: cover; }
+        .profile-box { background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; margin-bottom: 15px; position: relative; }
+        .profile-img { width: 90px; height: 90px; border-radius: 50%; border: 3px solid var(--gold); object-fit: cover; background: #2c3e50; }
+        
+        /* สไตล์สำหรับหน้าเลือกรูปโปรไฟล์ */
+        .avatar-grid { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; margin: 20px 0; }
+        .avatar-option { width: 80px; height: 80px; border-radius: 50%; border: 3px solid transparent; cursor: pointer; object-fit: cover; transition: 0.3s; background: #2c3e50; }
+        .avatar-option:hover { transform: scale(1.1); border-color: var(--seer); }
+        .avatar-option.selected { border-color: var(--gold); box-shadow: 0 0 15px var(--gold); transform: scale(1.1); }
     </style>
 </head>
 <body>
@@ -39,11 +46,13 @@
     
     <!-- ส่วนโปรไฟล์ผู้เล่น -->
     <div class="profile-box">
-        <!-- คุณสามารถเปลี่ยน src เป็นรูปภาพที่คุณเตรียมไว้ได้ในภายหลัง -->
-        <img src="https://via.placeholder.com/80/2c3e50/f1c40f?text=Wolf" alt="Profile" class="profile-img">
+        <img src="" alt="Profile" class="profile-img" id="playerAvatar">
+        <br>
+        <button onclick="openAvatarSelect()" class="btn-blue" style="width: auto; padding: 5px 15px; font-size: 14px; margin-top: -15px; border-radius: 20px; position: relative; z-index: 2;">✏️ เปลี่ยนรูป</button>
+        
         <input type="text" id="playerNameInput" placeholder="ตั้งชื่อของคุณ..." maxlength="15" style="text-align: center; margin-top: 10px;">
         <button onclick="saveProfile()" class="btn-green" style="margin-top: 5px; padding: 8px;">💾 บันทึกโปรไฟล์</button>
-        <p id="saveMessage" class="hidden" style="color: var(--guard); font-size: 14px; margin-top: 5px; font-weight: bold;">บันทึกชื่อเรียบร้อย!</p>
+        <p id="saveMessage" class="hidden" style="color: var(--guard); font-size: 14px; margin-top: 5px; font-weight: bold;">บันทึกสำเร็จ!</p>
     </div>
 
     <button onclick="showScreen('create-screen'); unlockVoice();">สร้างห้อง</button>
@@ -51,6 +60,13 @@
     <hr style="opacity: 0.3; margin: 15px 0;">
     <div id="room-list">กำลังค้นหาห้อง...</div>
     <div class="credit">Card Game Creators by.lilyuux</div>
+</div>
+
+<!-- หน้าต่างเลือกรูปโปรไฟล์ -->
+<div id="avatar-screen" class="container hidden">
+    <h2>เลือกรูปโปรไฟล์ของคุณ</h2>
+    <div id="avatar-grid" class="avatar-grid"></div>
+    <button style="background:#555" onclick="showScreen('lobby')">ย้อนกลับ</button>
 </div>
 
 <div id="create-screen" class="container hidden">
@@ -114,43 +130,75 @@
         "ชาวบ้าน": "https://i.postimg.cc/pdBqV0KX/IMG-0041.jpg"
     };
 
-    // --- ระบบโปรไฟล์ และ สุ่มชื่อใหม่ (wolf#001 - 999) ---
+    // --- ระบบรูปโปรไฟล์ ---
+    const AVATARS = [
+        "https://i.postimg.cc/SRwj1TW2/Untitled-design.png",
+        "https://i.postimg.cc/dQX701zP/Untitled-design.png",
+        "https://i.postimg.cc/2jJq56Pz/Untitled-design.png",
+        "https://i.postimg.cc/mZqcrD0L/Untitled-design.png",
+        "https://i.postimg.cc/CMtZK1WM/Untitled-design.png",
+        "https://i.postimg.cc/0536NQLb/Untitled-design.png",
+        "https://i.postimg.cc/RC830FjK/Untitled-design.png"
+    ];
+    let currentAvatar = AVATARS[0];
+
+    function openAvatarSelect() {
+        showScreen('avatar-screen');
+        const grid = document.getElementById('avatar-grid');
+        grid.innerHTML = AVATARS.map(url => `
+            <img src="${url}" class="avatar-option ${url === currentAvatar ? 'selected' : ''}" onclick="selectAvatar('${url}')">
+        `).join('');
+    }
+
+    function selectAvatar(url) {
+        currentAvatar = url;
+        document.getElementById('playerAvatar').src = currentAvatar;
+        localStorage.setItem('boardgame_playerAvatar', currentAvatar);
+        showScreen('lobby');
+    }
+
+    // --- ระบบโปรไฟล์ และ สุ่มชื่อ ---
     function generateWolfName() {
         const randomNum = Math.floor(Math.random() * 999) + 1;
         return `wolf#${randomNum.toString().padStart(3, '0')}`;
     }
 
     function loadProfile() {
+        // โหลดชื่อ
         let savedName = localStorage.getItem('boardgame_playerName');
         if (!savedName) {
             savedName = generateWolfName();
             localStorage.setItem('boardgame_playerName', savedName);
         }
         document.getElementById('playerNameInput').value = savedName;
-        document.getElementById('hName').value = savedName; // ใส่ชื่อลงในช่องสร้างห้องด้วย
+        document.getElementById('hName').value = savedName; 
+
+        // โหลดรูปภาพ
+        let savedAvatar = localStorage.getItem('boardgame_playerAvatar');
+        if (!savedAvatar || !AVATARS.includes(savedAvatar)) {
+            savedAvatar = AVATARS[0]; // ใช้รูปแรกเป็นค่าเริ่มต้น
+        }
+        currentAvatar = savedAvatar;
+        document.getElementById('playerAvatar').src = currentAvatar;
     }
 
     function saveProfile() {
         const nameInput = document.getElementById('playerNameInput');
         let newName = nameInput.value.trim();
         
-        // ถ้าปล่อยว่างไว้ ให้สุ่มชื่อให้ใหม่
         if (newName === "") {
             newName = generateWolfName();
             nameInput.value = newName;
         }
         
-        // บันทึกลงเครื่อง
         localStorage.setItem('boardgame_playerName', newName);
-        document.getElementById('hName').value = newName; // อัปเดตช่องสร้างห้อง
+        document.getElementById('hName').value = newName;
 
-        // แสดงข้อความยืนยัน
         const msg = document.getElementById('saveMessage');
         msg.classList.remove('hidden');
         setTimeout(() => msg.classList.add('hidden'), 2000);
     }
 
-    // โหลดโปรไฟล์ทันทีเมื่อเปิดหน้าเว็บ
     window.onload = () => { loadProfile(); };
 
     // --- ระบบเสียงพากย์ ---
@@ -169,14 +217,11 @@
     }
 
     function createRoom() {
-        // ดึงชื่อที่ตั้งไว้มาใช้ ถ้าไม่มีให้สุ่มใหม่
         let n = document.getElementById('hName').value.trim();
         if(!n) {
             n = generateWolfName();
             document.getElementById('hName').value = n;
         }
-        
-        // เซฟชื่อลงโปรไฟล์ด้วยเผื่อผู้เล่นเปลี่ยนชื่อในหน้าสร้างห้อง
         localStorage.setItem('boardgame_playerName', n);
         document.getElementById('playerNameInput').value = n;
 
@@ -192,14 +237,12 @@
         const n = prompt("ชื่อเล่นของคุณ:", currentName); 
         if(!n) return; 
 
-        // บันทึกชื่อที่กรอกตอนเข้าห้องลงโปรไฟล์ด้วย
         localStorage.setItem('boardgame_playerName', n);
         document.getElementById('playerNameInput').value = n;
 
         socket.emit('joinRoom', { roomId: rid, playerName: n, password: (hasP?prompt("รหัสผ่าน:"): "") }); 
     }
 
-    // --- ส่วนของ Socket.IO ที่เหลือเหมือนเดิมทั้งหมด ---
     socket.on('roomListUpdate', (rooms) => {
         const list = document.getElementById('room-list');
         list.innerHTML = rooms.length === 0 ? '<p style="color:#888;">ยังไม่มีใครสร้างห้อง</p>' : rooms.map(r => `
