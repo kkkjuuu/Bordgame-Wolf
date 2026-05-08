@@ -6,7 +6,7 @@
     <title>Werewolf Pro by.lilyuux</title>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;500;700&display=swap" rel="stylesheet">
     <style>
-        :root { --bg: #0f0c29; --wolf: #e74c3c; --seer: #3498db; --gold: #c5a059; --guard: #27ae60; }
+        :root { --bg: #0f0c29; --wolf: #e74c3c; --seer: #3498db; --gold: #c5a059; --guard: #27ae60; --table-black: #000000; --table-grey: #555555; --profile-purple: #8b5cf6; }
         body { font-family: 'Kanit', sans-serif; margin: 0; background: var(--bg); color: white; text-align: center; }
         .container { background: #16213e; padding: 20px; border-radius: 20px; width: 90%; max-width: 400px; margin: 20px auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         .credit { font-size: 12px; color: #888; margin-top: 15px; }
@@ -34,21 +34,130 @@
         .avatar-option { width: 80px; height: 80px; border-radius: 50%; border: 3px solid transparent; cursor: pointer; object-fit: cover; transition: 0.3s; background: #2c3e50; }
         .avatar-option.selected { border-color: var(--gold); box-shadow: 0 0 15px var(--gold); transform: scale(1.1); }
 
-        /* ตกแต่ง UI โต๊ะ */
-        #game-table-screen { width: 95%; max-width: 600px; display: grid; grid-template-rows: auto 1fr auto; gap: 15px; }
-        #table-container { background: #000; border-radius: 20px; padding: 20px; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 10px; position: relative; }
-        .table-central-rect { grid-column: 2 / 3; grid-row: 2 / 3; background: rgba(255,255,255,0.2); border-radius: 10px; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px; color: #f1c40f; font-size: 14px; text-align: center; }
-        .player-spot { position: relative; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 10px; background: rgba(255,255,255,0.05); transition: 0.2s; }
-        .player-avatar-spot { width: 80px; height: 80px; border-radius: 20px; object-fit: cover; border: 3px solid transparent; background: #2c3e50; transition: 0.2s; position: relative; }
-        
-        /* สไตล์เมื่อตัวนั้นสามารถคลิกใช้สกิลหรือโหวตได้ */
-        .player-spot.targetable { cursor: pointer; box-shadow: 0 0 15px var(--seer); background: rgba(255,255,255,0.1); }
-        .player-spot.targetable:hover .player-avatar-spot { transform: scale(1.05); border-color: var(--seer); }
-        
-        .player-name { margin-top: 5px; font-size: 14px; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; }
-        .player-ready { font-size: 12px; color: #aaa; margin-top: 2px; }
-        
-        .overlay-skull, .overlay-shield { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 20px; background-size: contain; background-repeat: no-repeat; background-position: center; z-index: 5; }
+        /* 👑 ตกแต่ง UI โต๊ะตรงตามบรีฟเป๊ะๆ 🐺 */
+        #game-table-screen { 
+            width: 100%; 
+            max-width: 400px; 
+            margin: 60px auto 20px auto; /* เพิ่ม margin-top ให้พ้นขอบจอบน */
+            position: relative;
+        }
+
+        /* สีดำคือโต๊ะ */
+        .table-black-bg {
+            background: var(--table-black);
+            width: 90%;
+            height: 220px;
+            margin: 0 auto;
+            border-radius: 15px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+        }
+
+        /* สีเทาด้านใน คือ ตัวหนังสือ */
+        .table-grey-inner {
+            background: var(--table-grey);
+            width: 90%;
+            height: 85%;
+            border-radius: 10px;
+            padding: 10px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+        }
+
+        .player-spot {
+            position: absolute;
+            width: 70px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 10;
+        }
+
+        /* สีม่วงคือโปรไฟล์ผู้เล่น */
+        .purple-box {
+            width: 65px;
+            height: 65px;
+            background: var(--profile-purple);
+            border-radius: 12px;
+            padding: 5px;
+            box-sizing: border-box;
+            position: relative;
+            transition: 0.2s;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+        }
+
+        .player-avatar-spot {
+            width: 100%;
+            height: 100%;
+            border-radius: 8px;
+            object-fit: cover;
+            background: #2c3e50;
+        }
+
+        /* ตำแหน่งตายตัวรอบโต๊ะ */
+        .pos-top-left { top: -30px; left: -20px; }
+        .pos-top-center { top: -30px; left: 50%; transform: translateX(-50%); }
+        .pos-top-right { top: -30px; right: -20px; }
+        .pos-bottom-left { bottom: -45px; left: -20px; }
+        .pos-bottom-center { bottom: -45px; left: 50%; transform: translateX(-50%); }
+        .pos-bottom-right { bottom: -45px; right: -20px; }
+
+        .player-name {
+            margin-top: 5px;
+            font-size: 12px;
+            background: rgba(0,0,0,0.8);
+            padding: 2px 6px;
+            border-radius: 5px;
+            white-space: nowrap;
+            max-width: 80px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: #fff;
+        }
+
+        .player-ready {
+            font-size: 11px;
+            color: #ddd;
+            margin-top: 2px;
+            background: rgba(0,0,0,0.5);
+            padding: 0 5px;
+            border-radius: 3px;
+        }
+
+        /* กะโหลก และ โล่ */
+        .overlay-icon {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-size: 80%;
+            background-repeat: no-repeat;
+            background-position: center;
+            z-index: 5;
+            background-color: rgba(0,0,0,0.5); /* ทำให้พื้นหลังทึบลงนิดนึงตอนตาย/ป้องกัน */
+            border-radius: 8px;
+        }
+
+        /* เอฟเฟกต์เป้าหมาย (กระพริบให้กด) */
+        .player-spot.targetable .purple-box {
+            cursor: pointer;
+            box-shadow: 0 0 15px 5px var(--seer);
+            animation: pulse 1.5s infinite;
+        }
+        .player-spot.targetable:hover .purple-box { transform: scale(1.1); }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
     </style>
 </head>
 <body>
@@ -109,19 +218,20 @@
     </div>
 </div>
 
-<div id="game-table-screen" class="container hidden">
-    <div id="table-container">
-        <div id="player-spots"></div>
-        <div class="table-central-rect" id="table-central-rect">
-            <h3 style="margin:0 0 5px 0; font-size:18px;" id="phase-title">🌙 กลางคืน</h3>
-            <p id="status-text" style="margin:0; font-size: 12px;"></p>
-            <p id="timer-text" class="hidden" style="margin-top: 5px; font-size: 18px; color:var(--wolf); font-weight:bold;">15</p>
+<div id="game-table-screen" class="hidden">
+    <div class="table-black-bg">
+        <div class="table-grey-inner" id="table-central-rect">
+            <h3 style="margin:0 0 5px 0; font-size:20px; color:#f1c40f;" id="phase-title">🌙 กลางคืน</h3>
+            <div id="status-text" style="margin:0; font-size: 14px; line-height: 1.4;"></div>
+            <p id="timer-text" class="hidden timer-text"></p>
         </div>
+
+        <div id="player-spots"></div>
     </div>
     
-    <div id="table-controls" class="hidden"></div>
+    <div id="table-controls" class="hidden" style="margin-top: 50px; width: 90%; max-width: 400px; margin-left: auto; margin-right: auto;"></div>
     
-    <div id="end-screen" class="hidden" style="margin-top: 20px;">
+    <div id="end-screen" class="hidden container" style="margin-top: 50px;">
         <h1 id="win-title" style="font-size: 40px; margin-bottom: 5px;"></h1>
         <div id="end-roles" style="text-align: left; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; margin-bottom: 20px;"></div>
         <button id="play-again-btn" class="btn-green" onclick="playAgain()">เล่นต่อ (Play Again)</button>
@@ -181,7 +291,7 @@
     function speakGame(text) { if (isHost && 'speechSynthesis' in window) { const msg = new SpeechSynthesisUtterance(text); msg.lang = 'th-TH'; msg.rate = 0.95; window.speechSynthesis.speak(msg); } }
 
     function showScreen(id) {
-        document.querySelectorAll('.container').forEach(el => el.classList.add('hidden'));
+        document.querySelectorAll('.container, #game-table-screen').forEach(el => el.classList.add('hidden'));
         document.getElementById(id).classList.remove('hidden');
     }
 
@@ -189,7 +299,6 @@
         let n = document.getElementById('hName').value.trim(); if(!n) n = generateWolfName();
         localStorage.setItem('boardgame_playerName', n); document.getElementById('playerNameInput').value = n;
         const r = document.getElementById('rName').value, p = document.getElementById('rPass').value, m = document.getElementById('maxP').value;
-        // ส่งรูปโปรไฟล์ไปเซิร์ฟเวอร์ด้วย
         if(n && r) socket.emit('createRoom', { roomId: r, playerName: n, maxPlayers: m, password: p, avatarUrl: currentAvatar });
     }
 
@@ -197,29 +306,34 @@
     function joinRoomPrompt(rid, hasP) { 
         unlockVoice(); let n = prompt("ชื่อเล่นของคุณ:", localStorage.getItem('boardgame_playerName') || generateWolfName()); 
         if(!n) return; localStorage.setItem('boardgame_playerName', n); document.getElementById('playerNameInput').value = n;
-        // ส่งรูปโปรไฟล์ไปเซิร์ฟเวอร์ด้วย
         socket.emit('joinRoom', { roomId: rid, playerName: n, password: (hasP?prompt("รหัสผ่าน:"): ""), avatarUrl: currentAvatar }); 
     }
 
-    // สร้างโครงโต๊ะ
+    // สร้างโครงโต๊ะแบบ Absolute (มุม/ขอบ)
     function generateTableSpots(maxPlayers) {
         const spots = document.getElementById('player-spots');
         spots.innerHTML = ''; 
 
-        // ตำแหน่ง (แถว, คอลัมน์) โดยอ้างอิง CSS Grid
-        const layouts = {
-            "4": [ [0,0], [0,2], [2,0], [2,2] ],
-            "5": [ [0,0], [0,1], [0,2], [2,0], [2,2] ], // 3 บน 2 ล่าง
-            "6": [ [0,0], [0,1], [0,2], [2,0], [2,1], [2,2] ]
-        };
-        const gridPos = layouts[maxPlayers] || layouts["4"];
+        // กำหนดคลาสตำแหน่งตามจำนวนผู้เล่น (อ้างอิงจากรูป 1, 2, 3)
+        let positions = [];
+        if (maxPlayers === '4') {
+            positions = ['pos-top-left', 'pos-top-right', 'pos-bottom-left', 'pos-bottom-right'];
+        } else if (maxPlayers === '5') {
+            positions = ['pos-top-left', 'pos-top-center', 'pos-top-right', 'pos-bottom-left', 'pos-bottom-right'];
+        } else if (maxPlayers === '6') {
+            positions = ['pos-top-left', 'pos-top-center', 'pos-top-right', 'pos-bottom-left', 'pos-bottom-center', 'pos-bottom-right'];
+        } else {
+            positions = ['pos-top-left', 'pos-top-right', 'pos-bottom-left', 'pos-bottom-right']; // Default fallback
+        }
 
-        for (let i = 0; i < gridPos.length; i++) {
+        for (let i = 0; i < positions.length; i++) {
             spots.innerHTML += `
-                <div class="player-spot" id="spot-index-${i}" style="grid-column:${gridPos[i][1]+1}; grid-row:${gridPos[i][0]+1};">
-                    <img src="" class="player-avatar-spot" id="spot-index-${i}-avatar">
-                    <div id="spot-index-${i}-skull" class="overlay-skull hidden" style="background-image:url('${ICON_IMG[' skull']}')"></div>
-                    <div id="spot-index-${i}-shield" class="overlay-shield hidden" style="background-image:url('${ICON_IMG[' shield']}')"></div>
+                <div class="player-spot ${positions[i]}" id="spot-index-${i}">
+                    <div class="purple-box">
+                        <img src="" class="player-avatar-spot" id="spot-index-${i}-avatar">
+                        <div id="spot-index-${i}-skull" class="overlay-icon hidden" style="background-image:url('${ICON_IMG[' skull']}'); background-color: rgba(0,0,0,0.6);"></div>
+                        <div id="spot-index-${i}-shield" class="overlay-icon hidden" style="background-image:url('${ICON_IMG[' shield']}')"></div>
+                    </div>
                     <div class="player-name" id="spot-index-${i}-name">?</div>
                     <div class="player-ready" id="spot-index-${i}-ready">⏳ รอ</div>
                 </div>
@@ -227,7 +341,6 @@
         }
     }
 
-    // เรนเดอร์ผู้เล่นลงบนโต๊ะและจับการคลิก
     function renderPlayersOnTable(room) {
         const spotsContainer = document.getElementById('player-spots');
         if (!spotsContainer || spotsContainer.children.length !== parseInt(room.maxPlayers)) {
@@ -238,20 +351,16 @@
             const spotId = `spot-index-${i}`;
             const spot = document.getElementById(spotId);
             
-            // อัปเดตข้อมูลพื้นฐาน
             const avatar = document.getElementById(`${spotId}-avatar`); if(avatar) avatar.src = p.avatarUrl || AVATARS[i % AVATARS.length]; 
             const name = document.getElementById(`${spotId}-name`); if(name) name.innerText = p.name + (p.isHost?'👑':'');
             const ready = document.getElementById(`${spotId}-ready`); if(ready) ready.innerText = p.isReady?'✅':'⏳';
             
-            // จัดการไอคอน
             const skull = document.getElementById(`${spotId}-skull`); if(skull) { if(!p.isAlive) skull.classList.remove('hidden'); else skull.classList.add('hidden'); }
             const shield = document.getElementById(`${spotId}-shield`); if(shield) { if(p.isAlive && currentGameState === 'DAY_TIME' && room.shieldTarget === p.id) shield.classList.remove('hidden'); else shield.classList.add('hidden'); }
 
-            // รีเซ็ตสถานะปุ่ม
             spot.onclick = null;
             spot.classList.remove('targetable');
 
-            // จัดการให้คลิกได้ ถ้าเป็นเป้าหมายที่ถูกเป้าหมายของสกิล
             if(p.isAlive && p.id !== socket.id) {
                 const me = room.players.find(x => x.id === socket.id);
                 if(me && me.isAlive) {
@@ -314,13 +423,11 @@
             const me = room.players.find(p => p.id === socket.id);
             if(me) {
                 myRole = me.role;
-                showScreen('game-screen'); // แสดงหน้าบทบาท (แก้บั๊กหายที่นี่)
+                showScreen('game-screen'); 
                 document.getElementById('role-text').innerText = "คุณคือ: " + myRole;
                 document.getElementById('role-img').style.backgroundImage = "url('" + ROLE_IMG[myRole] + "')";
                 document.getElementById('ready-btn').disabled = false;
                 document.getElementById('ready-btn').innerText = "พร้อมเข้าสู่กลางคืน";
-                
-                // ตอนดูบทบาท แอบสร้างโครงโต๊ะไว้ล่วงหน้า
                 generateTableSpots(room.maxPlayers.toString());
             }
         }
@@ -328,7 +435,6 @@
         if(room.state.includes('NIGHT')) {
             showScreen('game-table-screen');
             document.getElementById('phase-title').innerText = "🌙 กลางคืน";
-            document.getElementById('table-central-rect').style.gridColumn = room.maxPlayers === '5' ? '1/4' : '2/3'; 
             const statusText = document.getElementById('status-text');
             document.getElementById('timer-text').classList.add('hidden');
             document.getElementById('table-controls').classList.add('hidden');
@@ -349,9 +455,9 @@
             const statusText = document.getElementById('status-text');
             const me = room.players.find(p => p.id === socket.id);
             
-            let status = room.lastVictim ? `<p style="color:red; font-size:18px;">เมื่อคืน ${room.lastVictim} ถูกฆ่าตาย</p>` : "<p style='font-size:18px;'>ไม่มีใครตาย</p>";
-            if(me && me.isAlive) status += "<p>เมื่อคุยจบ กดปุ่มด้านล่างเพื่อเริ่มโหวต</p>"; 
-            else status += "<p style='color:#aaa'>คุณตายแล้ว รอเพื่อนโหวต...</p>"; 
+            let status = room.lastVictim ? `<p style="color:#e74c3c; font-size:16px;">เมื่อคืน <b>${room.lastVictim}</b> ถูกฆ่าตาย</p>` : "<p style='font-size:16px;'>ไม่มีใครตาย</p>";
+            if(me && me.isAlive) status += "<br><p style='font-size:13px; color:#aaa;'>เมื่อคุยจบ กดปุ่มด้านล่างเพื่อเริ่มโหวต</p>"; 
+            else status += "<br><p style='color:#aaa'>คุณตายแล้ว รอเพื่อนโหวต...</p>"; 
             statusText.innerHTML = status;
             
             renderPlayersOnTable(room);
@@ -371,7 +477,7 @@
             const me = room.players.find(p => p.id === socket.id);
             totalAlive = room.players.filter(p => p.isAlive).length;
             
-            statusText.innerText = `กดที่รูปเพื่อโหวต (0 / ${totalAlive} คน)`;
+            statusText.innerHTML = `<p>กดที่กล่องสีม่วงเพื่อโหวต<br>(โหวตแล้ว 0 / ${totalAlive} คน)</p>`;
             timerText.classList.remove('hidden'); 
             
             renderPlayersOnTable(room);
@@ -385,13 +491,13 @@
 
         if(room.state === 'DAY_RESULT') {
             showScreen('game-table-screen');
-            document.getElementById('phase-title').innerText = "⚖️ ผลการโหวต";
+            document.getElementById('phase-title').innerText = "⚖️ ผลโหวต";
             const statusText = document.getElementById('status-text');
             document.getElementById('timer-text').classList.add('hidden');
             document.getElementById('table-controls').classList.add('hidden');
 
-            if (room.lastEliminated) statusText.innerHTML = `<p style="color:red; font-size:20px; font-weight:bold;">มติเอกฉันท์: ${room.lastEliminated} ถูกโหวตออก!</p>`;
-            else statusText.innerHTML = `<p style="font-size:20px; font-weight:bold;">คะแนนไม่เอกฉันท์ (รอดทุกคน)</p>`;
+            if (room.lastEliminated) statusText.innerHTML = `<p style="color:#e74c3c; font-size:18px; font-weight:bold;">มติเอกฉันท์:<br>${room.lastEliminated} ถูกโหวตออก!</p>`;
+            else statusText.innerHTML = `<p style="font-size:16px; font-weight:bold;">คะแนนไม่เอกฉันท์<br>(รอดทุกคน)</p>`;
         }
 
         if(room.state === 'GAME_OVER') {
@@ -411,7 +517,7 @@
 
     socket.on('voteCountUpdate', (count) => {
         const vc = document.getElementById('status-text');
-        if(vc && currentGameState === 'VOTING') vc.innerText = `กดที่รูปเพื่อโหวต (${count} / ${totalAlive} คน)`;
+        if(vc && currentGameState === 'VOTING') vc.innerHTML = `<p>กดที่กล่องสีม่วงเพื่อโหวต<br>(โหวตแล้ว ${count} / ${totalAlive} คน)</p>`;
     });
     socket.on('timerUpdate', (time) => { const timer = document.getElementById('timer-text'); if(timer) timer.innerText = time; });
     socket.on('seerResult', (d) => { alert(`ผลการตรวจ: ${d.name} คือ ${d.result}`); });
