@@ -12,19 +12,25 @@ app.get('/', (req, res) => { res.sendFile(path.join(__dirname, 'index.html')); }
 
 const rooms = {};
 
+// ฟังก์ชันตัวช่วยสำหรับล้างเวลา (Clear Timer) เพื่อไม่ให้บั๊กเวลานับถอยหลังซ้อนกัน
+function clearRoomTimer(roomId) {
+    if(rooms[roomId] && rooms[roomId].timer) {
+        clearInterval(rooms[roomId].timer);
+        rooms[roomId].timer = null;
+    }
+}
+
 function generateDefaultName() {
     const randomNum = Math.floor(Math.random() * 999) + 1;
     return `wolf#${randomNum.toString().padStart(3, '0')}`;
 }
 
-// 🐺 ระบบสุ่มบทบาทใหม่แบบคลายล็อค (กระจายตัวดีที่สุด)
 function getShuffledRoles(playerCount) {
     let roles = ["มนุษย์หมาป่า", "ผู้หยั่งรู้", "บอดี้การ์ด"];
     if (playerCount >= 4) roles.push("ชาวบ้าน");
     if (playerCount >= 5) roles.push("ชาวบ้าน");
-    if (playerCount >= 6) roles.push("มนุษย์หมาป่า"); // 6 คนให้มีหมาป่า 2 ตัว
+    if (playerCount >= 6) roles.push("มนุษย์หมาป่า"); 
     
-    // อัลกอริทึมสุ่ม Fisher-Yates
     for (let i = roles.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [roles[i], roles[j]] = [roles[j], roles[i]];
@@ -43,7 +49,6 @@ function broadcastRooms() {
 io.on('connection', (socket) => {
     broadcastRooms();
 
-    // รับค่า avatarUrl มาด้วย
     socket.on('createRoom', ({ roomId, playerName, maxPlayers, password, avatarUrl }) => {
         if (rooms[roomId]) return socket.emit('errorMsg', 'ชื่อห้องนี้ซ้ำ');
         let finalPlayerName = playerName && playerName.trim() !== "" ? playerName : generateDefaultName();
@@ -52,14 +57,13 @@ io.on('connection', (socket) => {
         rooms[roomId] = {
             players: [{ id: socket.id, name: finalPlayerName, isHost: true, isAlive: true, isReady: false, wantsToPlayAgain: false, avatarUrl: avatarUrl }],
             state: 'LOBBY', maxPlayers: parseInt(maxPlayers), password: password || "",
-            nightActions: { WOLF_KILL: null, GUARD_PROTECT: null }, lastGuarded: {}, votes: {}
+            nightActions: { WOLF_KILL: null, GUARD_PROTECT: null }, lastGuarded: {}, votes: {}, timer: null
         };
         socket.emit('joined', { roomId, isHost: true });
         io.to(roomId).emit('updateRoom', rooms[roomId]);
         broadcastRooms();
     });
 
-    // รับค่า avatarUrl มาด้วย
     socket.on('joinRoom', ({ roomId, playerName, password, avatarUrl }) => {
         const room = rooms[roomId];
         if (!room) return socket.emit('errorMsg', 'ไม่พบห้อง');
@@ -78,18 +82,27 @@ io.on('connection', (socket) => {
         const room = rooms[roomId];
         if (!room) return;
         
-        // ใช้ระบบสุ่มใหม่
         const shuffled = getShuffledRoles(room.players.length);
         room.players.forEach((p, i) => { p.role = shuffled[i]; p.isReady = false; p.isAlive = true; p.wantsToPlayAgain = false; });
         
         room.state = 'STARTING';
+        clearRoomTimer(roomId);
         io.to(roomId).emit('updateRoom', room);
         broadcastRooms();
         
-        setTimeout(() => {
-            room.state = 'ROLE_REVEAL';
-            io.to(roomId).emit('updateRoom', room);
-        }, 3000);
+        // เริ่มนับถอยหลัง 5 วิ ก่อนแสดงบทบาท
+        let time = 5;
+        io.to(roomId).emit('timerUpdate', time);
+        room.timer = setInterval(() => {
+            time--;
+            if (time > 0) {
+                io.to(roomId).emit('timerUpdate', time);
+            } else {
+                clearRoomTimer(roomId);
+                room.state = 'ROLE_REVEAL';
+                io.to(roomId).emit('updateRoom', room);
+            }
+        }, 1000);
     });
 
     socket.on('playAgain', (roomId) => {
@@ -101,18 +114,28 @@ io.on('connection', (socket) => {
             io.to(roomId).emit('updateRoom', room);
 
             if (room.players.every(x => x.wantsToPlayAgain)) {
-                // ใช้ระบบสุ่มใหม่
                 const shuffled = getShuffledRoles(room.players.length);
                 room.players.forEach((p, i) => { 
                     p.role = shuffled[i]; p.isReady = false; p.isAlive = true; p.wantsToPlayAgain = false; 
                 });
                 room.state = 'STARTING';
                 room.lastGuarded = {};
+                clearRoomTimer(roomId);
                 io.to(roomId).emit('updateRoom', room);
-                setTimeout(() => {
-                    room.state = 'ROLE_REVEAL';
-                    io.to(roomId).emit('updateRoom', room);
-                }, 3000);
+                
+                // เริ่มนับถอยหลัง 5 วิ ก่อนแสดงบทบาท
+                let time = 5;
+                io.to(roomId).emit('timerUpdate', time);
+                room.timer = setInterval(() => {
+                    time--;
+                    if (time > 0) {
+                        io.to(roomId).emit('timerUpdate', time);
+                    } else {
+                        clearRoomTimer(roomId);
+                        room.state = 'ROLE_REVEAL';
+                        io.to(roomId).emit('updateRoom', room);
+                    }
+                }, 1000);
             }
         }
     });
@@ -126,7 +149,23 @@ io.on('connection', (socket) => {
             const alive = room.players.filter(x => x.isAlive);
             if (alive.every(x => x.isReady)) {
                 room.players.forEach(x => x.isReady = false);
-                startNightPhase(roomId, 'NIGHT_WOLF');
+                
+                room.state = 'NIGHT_TRANSITION'; // สถานะเตรียมเข้ากลางคืน
+                clearRoomTimer(roomId);
+                io.to(roomId).emit('updateRoom', room);
+                
+                // นับถอยหลัง 3 วิ ก่อนเข้ากลางคืนจริงๆ
+                let time = 3;
+                io.to(roomId).emit('timerUpdate', time);
+                room.timer = setInterval(() => {
+                    time--;
+                    if(time > 0) {
+                        io.to(roomId).emit('timerUpdate', time);
+                    } else {
+                        clearRoomTimer(roomId);
+                        startNightPhase(roomId, 'NIGHT_WOLF');
+                    }
+                }, 1000);
             } else {
                 io.to(roomId).emit('updateRoom', room);
             }
@@ -197,18 +236,37 @@ io.on('connection', (socket) => {
 
     socket.on('startVoting', (roomId) => {
         const room = rooms[roomId];
-        if (!room || room.state === 'VOTING') return;
-        room.state = 'VOTING';
-        room.votes = {};
+        if (!room || room.state === 'VOTING' || room.state === 'PRE_VOTING') return;
+        
+        room.state = 'PRE_VOTING'; // เตรียมตัวโหวต
+        clearRoomTimer(roomId);
         io.to(roomId).emit('updateRoom', room);
-
-        let time = 15;
-        const timer = setInterval(() => {
+        
+        // นับถอยหลัง 5 วิ ก่อนเปิดระบบโหวต
+        let time = 5;
+        io.to(roomId).emit('timerUpdate', time);
+        room.timer = setInterval(() => {
             time--;
-            io.to(roomId).emit('timerUpdate', time);
-            if (time <= 0) {
-                clearInterval(timer);
-                resolveVote(roomId);
+            if(time > 0) {
+                io.to(roomId).emit('timerUpdate', time);
+            } else {
+                clearRoomTimer(roomId);
+                room.state = 'VOTING';
+                room.votes = {};
+                io.to(roomId).emit('updateRoom', room);
+
+                // เริ่มเวลาโหวต 15 วินาที
+                let voteTime = 15;
+                io.to(roomId).emit('timerUpdate', voteTime);
+                room.timer = setInterval(() => {
+                    voteTime--;
+                    if (voteTime > 0) {
+                        io.to(roomId).emit('timerUpdate', voteTime);
+                    } else {
+                        clearRoomTimer(roomId);
+                        resolveVote(roomId);
+                    }
+                }, 1000);
             }
         }, 1000);
     });
