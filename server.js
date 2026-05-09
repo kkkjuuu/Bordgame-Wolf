@@ -12,11 +12,13 @@ app.get('/', (req, res) => { res.sendFile(path.join(__dirname, 'index.html')); }
 
 const rooms = {};
 
-// ฟังก์ชันตัวช่วยสำหรับล้างเวลา (Clear Timer) เพื่อไม่ให้บั๊กเวลานับถอยหลังซ้อนกัน
+// ฟังก์ชันตัวช่วยสำหรับล้างเวลา (Clear Timer) และล้างหน้าจอเพื่อไม่ให้บั๊กเวลานับถอยหลังซ้อนกันหรือค้าง
 function clearRoomTimer(roomId) {
     if(rooms[roomId] && rooms[roomId].timer) {
         clearInterval(rooms[roomId].timer);
         rooms[roomId].timer = null;
+        // ส่งค่าว่างไปล้างตัวเลขบนหน้าจอ UI ของทุกคนในห้อง
+        io.to(roomId).emit('timerUpdate', ''); 
     }
 }
 
@@ -90,7 +92,6 @@ io.on('connection', (socket) => {
         io.to(roomId).emit('updateRoom', room);
         broadcastRooms();
         
-        // เริ่มนับถอยหลัง 5 วิ ก่อนแสดงบทบาท
         let time = 5;
         io.to(roomId).emit('timerUpdate', time);
         room.timer = setInterval(() => {
@@ -123,7 +124,6 @@ io.on('connection', (socket) => {
                 clearRoomTimer(roomId);
                 io.to(roomId).emit('updateRoom', room);
                 
-                // เริ่มนับถอยหลัง 5 วิ ก่อนแสดงบทบาท
                 let time = 5;
                 io.to(roomId).emit('timerUpdate', time);
                 room.timer = setInterval(() => {
@@ -150,11 +150,10 @@ io.on('connection', (socket) => {
             if (alive.every(x => x.isReady)) {
                 room.players.forEach(x => x.isReady = false);
                 
-                room.state = 'NIGHT_TRANSITION'; // สถานะเตรียมเข้ากลางคืน
+                room.state = 'NIGHT_TRANSITION'; 
                 clearRoomTimer(roomId);
                 io.to(roomId).emit('updateRoom', room);
                 
-                // นับถอยหลัง 3 วิ ก่อนเข้ากลางคืนจริงๆ
                 let time = 3;
                 io.to(roomId).emit('timerUpdate', time);
                 room.timer = setInterval(() => {
@@ -238,11 +237,10 @@ io.on('connection', (socket) => {
         const room = rooms[roomId];
         if (!room || room.state === 'VOTING' || room.state === 'PRE_VOTING') return;
         
-        room.state = 'PRE_VOTING'; // เตรียมตัวโหวต
+        room.state = 'PRE_VOTING'; 
         clearRoomTimer(roomId);
         io.to(roomId).emit('updateRoom', room);
         
-        // นับถอยหลัง 5 วิ ก่อนเปิดระบบโหวต
         let time = 5;
         io.to(roomId).emit('timerUpdate', time);
         room.timer = setInterval(() => {
@@ -255,7 +253,6 @@ io.on('connection', (socket) => {
                 room.votes = {};
                 io.to(roomId).emit('updateRoom', room);
 
-                // เริ่มเวลาโหวต 15 วินาที
                 let voteTime = 15;
                 io.to(roomId).emit('timerUpdate', voteTime);
                 room.timer = setInterval(() => {
@@ -307,6 +304,7 @@ io.on('connection', (socket) => {
 
     function checkGameOver(roomId) {
         const room = rooms[roomId];
+        if(!room) return; // ป้องกันบั๊กกรณีห้องถูกลบไปแล้ว
         const wolves = room.players.filter(p => p.role === 'มนุษย์หมาป่า' && p.isAlive);
         const villagers = room.players.filter(p => p.role !== 'มนุษย์หมาป่า' && p.isAlive);
 
@@ -320,6 +318,46 @@ io.on('connection', (socket) => {
         }
         io.to(roomId).emit('updateRoom', room);
     }
+
+    // --- ระบบจัดการเมื่อผู้เล่นเน็ตหลุด / ปิดเบราว์เซอร์ ---
+    socket.on('disconnect', () => {
+        for (const roomId in rooms) {
+            const room = rooms[roomId];
+            const playerIndex = room.players.findIndex(p => p.id === socket.id);
+
+            if (playerIndex !== -1) {
+                const disconnectedPlayer = room.players[playerIndex];
+                
+                // 1. ลบผู้เล่นออกจากรายชื่อในห้อง
+                room.players.splice(playerIndex, 1);
+
+                // 2. ถ้าห้องว่างเปล่า ให้ลบห้องทิ้ง
+                if (room.players.length === 0) {
+                    clearRoomTimer(roomId);
+                    delete rooms[roomId];
+                } else {
+                    // 3. ถ้าคนที่หลุดเป็น Host ให้ส่งไม้ต่อให้คนที่ 0
+                    if (disconnectedPlayer.isHost) {
+                        room.players[0].isHost = true;
+                    }
+
+                    // 4. ถ้าหลุดระหว่างเล่นเกม ให้เช็คว่าเกมควรจบไหม
+                    if (room.state !== 'LOBBY' && room.state !== 'STARTING' && room.state !== 'ROLE_REVEAL') {
+                        checkGameOver(roomId); 
+                    }
+                    
+                    // อัปเดตข้อมูลให้คนในห้องที่เหลือทราบ
+                    if (rooms[roomId]) {
+                        io.to(roomId).emit('updateRoom', room);
+                    }
+                }
+                
+                // อัปเดตรายชื่อห้องล็อบบี้ให้ทุกคนข้างนอกทราบ
+                broadcastRooms();
+                break;
+            }
+        }
+    });
 });
 
 server.listen(process.env.PORT || 3000);
