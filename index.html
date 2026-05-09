@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="th">
 <head>
     <meta charset="UTF-8">
@@ -26,139 +27,156 @@
         .card-front { background: #2c3e50; display: flex; align-items: center; justify-content: center; font-size: 50px; }
         .card-back { transform: rotateY(180deg); background-size: cover; background-position: center; }
         .timer-text { font-size: 40px; color: #e74c3c; font-weight: bold; margin: 10px 0; }
-        
-        .profile-box { background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; margin-bottom: 15px; position: relative; }
-        .profile-img { width: 90px; height: 90px; border-radius: 50%; border: 3px solid var(--gold); object-fit: cover; background: #2c3e50; }
-        
-        .avatar-grid { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; margin: 20px 0; }
-        .avatar-option { width: 80px; height: 80px; border-radius: 50%; border: 3px solid transparent; cursor: pointer; object-fit: cover; transition: 0.3s; background: #2c3e50; }
-        .avatar-option.selected { border-color: var(--gold); box-shadow: 0 0 15px var(--gold); transform: scale(1.1); }
 
-        #game-table-screen { 
-            width: 100%; 
-            max-width: 500px; 
-            margin: 80px auto 20px auto; 
-            position: relative;
-        }
+```
+    .profile-box { background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; margin-bottom: 15px; position: relative; }
+    .profile-img { width: 90px; height: 90px; border-radius: 50%; border: 3px solid var(--gold); object-fit: cover; background: #2c3e50; }
+    
+    .avatar-grid { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; margin: 20px 0; }
+    .avatar-option { width: 80px; height: 80px; border-radius: 50%; border: 3px solid transparent; cursor: pointer; object-fit: cover; transition: 0.3s; background: #2c3e50; }
+    .avatar-option.selected { border-color: var(--gold); box-shadow: 0 0 15px var(--gold); transform: scale(1.1); }
 
-        .neon-table-bg {
-            background: radial-gradient(circle, #0f172a 0%, #000000 100%);
-            width: 80%;
-            height: 240px;
-            margin: 0 auto;
-            border-radius: 12px;
-            border: 3px solid #3ebdf8; 
-            box-shadow: 0 0 15px rgba(62, 189, 248, 0.5), inset 0 0 20px rgba(62, 189, 248, 0.2);
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
+    #game-table-screen { 
+        width: 100%; 
+        max-width: 500px; 
+        margin: 80px auto 20px auto; 
+        position: relative;
+    }
 
-        .neon-table-bg::after {
-            content: "CARD GAME BY LILYUU.CCO";
-            position: absolute;
-            bottom: 12px;
-            font-size: 10px;
-            font-weight: 700;
-            color: rgba(62, 189, 248, 0.3);
-            letter-spacing: 2px;
-            pointer-events: none; 
-        }
+    .neon-table-bg {
+        background: radial-gradient(circle, #0f172a 0%, #000000 100%);
+        width: 80%;
+        height: 240px;
+        margin: 0 auto;
+        border-radius: 12px;
+        border: 3px solid #3ebdf8; 
+        box-shadow: 0 0 15px rgba(62, 189, 248, 0.5), inset 0 0 20px rgba(62, 189, 248, 0.2);
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
 
-        .table-center-content {
-            z-index: 5;
-            text-align: center;
-            color: white;
-            text-shadow: 1px 1px 4px #000;
-        }
+    .neon-table-bg::after {
+        content: "CARD GAME BY LILYUU.CCO";
+        position: absolute;
+        bottom: 12px;
+        font-size: 10px;
+        font-weight: 700;
+        color: rgba(62, 189, 248, 0.3);
+        letter-spacing: 2px;
+        pointer-events: none; 
+    }
 
-        .player-spot {
-            position: absolute;
-            width: 70px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            z-index: 10;
-        }
+    .table-center-content {
+        z-index: 5;
+        text-align: center;
+        color: white;
+        text-shadow: 1px 1px 4px #000;
+    }
 
-        .neon-player-box {
-            width: 70px;
-            height: 70px;
-            background: #000;
-            border-radius: 12px;
-            border: 3px solid #3ebdf8;
-            box-shadow: 0 0 15px rgba(62, 189, 248, 0.5);
-            padding: 3px;
-            box-sizing: border-box;
-            position: relative;
-            transition: 0.2s;
-        }
+    .player-spot {
+        position: absolute;
+        width: 70px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        z-index: 10;
+    }
 
-        .player-avatar-spot {
-            width: 100%;
-            height: 100%;
-            border-radius: 8px;
-            object-fit: cover;
-            background: #111;
-        }
+    .neon-player-box {
+        width: 70px;
+        height: 70px;
+        background: #000;
+        border-radius: 12px;
+        border: 3px solid #3ebdf8;
+        box-shadow: 0 0 15px rgba(62, 189, 248, 0.5);
+        padding: 3px;
+        box-sizing: border-box;
+        position: relative;
+        transition: 0.2s;
+    }
 
-        .pos-top-left { top: -35px; left: -35px; }
-        .pos-top-center { top: -35px; left: 50%; transform: translateX(-50%); }
-        .pos-top-right { top: -35px; right: -35px; }
-        .pos-bottom-left { bottom: -35px; left: -35px; }
-        .pos-bottom-center { bottom: -35px; left: 50%; transform: translateX(-50%); }
-        .pos-bottom-right { bottom: -35px; right: -35px; }
+    .player-avatar-spot {
+        width: 100%;
+        height: 100%;
+        border-radius: 8px;
+        object-fit: cover;
+        background: #111;
+    }
 
-        .player-name {
-            margin-top: 5px;
-            font-size: 12px;
-            background: rgba(0,0,0,0.8);
-            padding: 2px 6px;
-            border-radius: 5px;
-            white-space: nowrap;
-            max-width: 80px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            color: #fff;
-        }
+    .pos-top-left { top: -35px; left: -35px; }
+    .pos-top-center { top: -35px; left: 50%; transform: translateX(-50%); }
+    .pos-top-right { top: -35px; right: -35px; }
+    .pos-bottom-left { bottom: -35px; left: -35px; }
+    .pos-bottom-center { bottom: -35px; left: 50%; transform: translateX(-50%); }
+    .pos-bottom-right { bottom: -35px; right: -35px; }
 
-        .player-ready {
-            font-size: 11px;
-            color: #ddd;
-            margin-top: 2px;
-            background: rgba(0,0,0,0.5);
-            padding: 0 5px;
-            border-radius: 3px;
-        }
+    .player-name {
+        margin-top: 5px;
+        font-size: 12px;
+        background: rgba(0,0,0,0.8);
+        padding: 2px 6px;
+        border-radius: 5px;
+        white-space: nowrap;
+        max-width: 80px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: #fff;
+    }
 
-        .overlay-icon {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background-size: 80%;
-            background-repeat: no-repeat;
-            background-position: center;
-            z-index: 5;
-            background-color: rgba(0,0,0,0.5); 
-            border-radius: 8px;
-        }
+    .player-ready {
+        font-size: 11px;
+        color: #ddd;
+        margin-top: 2px;
+        background: rgba(0,0,0,0.5);
+        padding: 0 5px;
+        border-radius: 3px;
+    }
 
-        .player-spot.targetable .neon-player-box {
-            cursor: pointer;
-            box-shadow: 0 0 20px 8px #3ebdf8;
-            animation: pulse 1.5s infinite;
-            border-color: #fff;
-        }
-        .player-spot.targetable:hover .neon-player-box { transform: scale(1.1); }
+    .overlay-icon {
+        position: absolute;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background-size: 80%;
+        background-repeat: no-repeat;
+        background-position: center;
+        z-index: 5;
+        background-color: rgba(0,0,0,0.5); 
+        border-radius: 8px;
+    }
 
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-        }
+    .player-spot.targetable .neon-player-box {
+        cursor: pointer;
+        box-shadow: 0 0 20px 8px #3ebdf8;
+        animation: pulse 1.5s infinite;
+        border-color: #fff;
+    }
+    .player-spot.targetable:hover .neon-player-box { transform: scale(1.1); }
 
-    </style>
+    /* ✅ สไตล์พิเศษสำหรับ self-target (บอดี้การ์ดปกป้องตัวเอง) */
+    .player-spot.targetable-self .neon-player-box {
+        cursor: pointer;
+        box-shadow: 0 0 20px 8px #27ae60;
+        animation: pulse-green 1.5s infinite;
+        border-color: #27ae60;
+    }
+    .player-spot.targetable-self:hover .neon-player-box { transform: scale(1.1); }
+
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+
+    @keyframes pulse-green {
+        0% { box-shadow: 0 0 20px 8px #27ae60; }
+        50% { box-shadow: 0 0 30px 12px #2ecc71; }
+        100% { box-shadow: 0 0 20px 8px #27ae60; }
+    }
+</style>
+```
+
 </head>
 <body>
 
@@ -226,20 +244,24 @@
             <p id="timer-text" class="hidden timer-text"></p>
         </div>
 
-        <div id="player-spots"></div>
-    </div>
-    
-    <div id="table-controls" class="hidden" style="margin-top: 60px; width: 90%; max-width: 400px; margin-left: auto; margin-right: auto;"></div>
-    
-    <div id="end-screen" class="hidden container" style="margin-top: 50px;">
-        <h1 id="win-title" style="font-size: 40px; margin-bottom: 5px;"></h1>
-        <div id="end-roles" style="text-align: left; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; margin-bottom: 20px;"></div>
-        <button id="play-again-btn" class="btn-green" onclick="playAgain()">เล่นต่อ (Play Again)</button>
-        <button style="background:#555; margin-top:10px;" onclick="location.reload()">ออกไปหน้าแรก</button>
-    </div>
+```
+    <div id="player-spots"></div>
+</div>
+
+<div id="table-controls" class="hidden" style="margin-top: 60px; width: 90%; max-width: 400px; margin-left: auto; margin-right: auto;"></div>
+
+<div id="end-screen" class="hidden container" style="margin-top: 50px;">
+    <h1 id="win-title" style="font-size: 40px; margin-bottom: 5px;"></h1>
+    <div id="end-roles" style="text-align: left; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; margin-bottom: 20px;"></div>
+    <button id="play-again-btn" class="btn-green" onclick="playAgain()">เล่นต่อ (Play Again)</button>
+    <button style="background:#555; margin-top:10px;" onclick="location.reload()">ออกไปหน้าแรก</button>
+</div>
+```
+
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
+
 <script>
     const socket = io();
     let myRoom = '', myRole = '', isHost = false, lastGuard = '';
@@ -345,6 +367,8 @@
             generateTableSpots(room.maxPlayers.toString());
         }
 
+        const me = room.players.find(p => p.id === socket.id);
+
         room.players.forEach((p, i) => {
             const spotId = `spot-index-${i}`;
             const spot = document.getElementById(spotId);
@@ -370,44 +394,56 @@
 
             spot.onclick = null;
             spot.classList.remove('targetable');
+            spot.classList.remove('targetable-self');
 
-            if(p.isAlive && !isMe) {
-                const me = room.players.find(x => x.id === socket.id);
-                if(me && me.isAlive) {
+            if(p.isAlive && me && me.isAlive) {
+                // ✅ แก้บั๊ก: บอดี้การ์ดปกป้องตัวเองได้ — แยกเคส isMe ออกมาตรวจสอบด้วย
+                const isGuardPhase = room.state === 'NIGHT_BODYGUARD' && myRole === 'บอดี้การ์ด';
+
+                if (!isMe) {
+                    // ผู้เล่นคนอื่น — ตรวจสอบปกติ
                     let canTarget = false;
                     let actionType = '';
 
-                    if(room.state === 'NIGHT_WOLF' && me.role === 'มนุษย์หมาป่า') { canTarget = true; actionType = 'WOLF_KILL'; }
-                    else if(room.state === 'NIGHT_SEER' && me.role === 'ผู้หยั่งรู้') { canTarget = true; actionType = 'SEER_CHECK'; }
-                    else if(room.state === 'NIGHT_BODYGUARD' && me.role === 'บอดี้การ์ด' && p.id !== lastGuard) { canTarget = true; actionType = 'GUARD_PROTECT'; }
+                    if(room.state === 'NIGHT_WOLF' && myRole === 'มนุษย์หมาป่า') { canTarget = true; actionType = 'WOLF_KILL'; }
+                    else if(room.state === 'NIGHT_SEER' && myRole === 'ผู้หยั่งรู้') { canTarget = true; actionType = 'SEER_CHECK'; }
+                    else if(isGuardPhase && p.id !== lastGuard) { canTarget = true; actionType = 'GUARD_PROTECT'; }
                     else if(room.state === 'VOTING') { canTarget = true; actionType = 'VOTE'; }
 
                     if(canTarget) {
                         spot.classList.add('targetable');
-                        spot.onclick = () => {
-                            let confirmMsg = "";
-                            if (actionType === 'VOTE') confirmMsg = `คุณต้องการจะโหวต ${p.name} ใช่หรือไม่?`;
-                            else if (actionType === 'WOLF_KILL') confirmMsg = `คุณต้องการจะฆ่า ${p.name} ใช่หรือไม่?`;
-                            else if (actionType === 'SEER_CHECK') confirmMsg = `คุณต้องการตรวจบทบาทของ ${p.name} ใช่หรือไม่?`;
-                            else if (actionType === 'GUARD_PROTECT') confirmMsg = `คุณต้องการจะปกป้อง ${p.name} ใช่หรือไม่?`;
-
-                            if(confirm(confirmMsg)) {
-                                if(actionType === 'VOTE') {
-                                    socket.emit('castVote', { roomId: myRoom, targetId: p.id });
-                                    document.querySelectorAll('.player-spot').forEach(s => { s.classList.remove('targetable'); s.onclick = null; });
-                                    document.getElementById('status-text').innerText = "ส่งผลโหวตแล้ว รอเวลาหมด...";
-                                } else {
-                                    if(actionType === 'GUARD_PROTECT') lastGuard = p.id;
-                                    socket.emit('nightAction', { roomId: myRoom, targetId: p.id, actionType: actionType });
-                                    document.querySelectorAll('.player-spot').forEach(s => { s.classList.remove('targetable'); s.onclick = null; });
-                                    document.getElementById('status-text').innerText = "ส่งคำสั่งแล้ว รอคนอื่น...";
-                                }
-                            }
-                        };
+                        spot.onclick = () => makeAction(p, actionType);
+                    }
+                } else {
+                    // ✅ ตัวเอง — บอดี้การ์ดสามารถปกป้องตัวเองได้ (ยกเว้นคนที่เพิ่งปกป้องรอบที่แล้ว)
+                    if(isGuardPhase && p.id !== lastGuard) {
+                        spot.classList.add('targetable-self');
+                        spot.onclick = () => makeAction(p, 'GUARD_PROTECT');
                     }
                 }
             }
         });
+    }
+
+    function makeAction(p, actionType) {
+        let confirmMsg = "";
+        if (actionType === 'VOTE') confirmMsg = `คุณต้องการจะโหวต ${p.name} ใช่หรือไม่?`;
+        else if (actionType === 'WOLF_KILL') confirmMsg = `คุณต้องการจะฆ่า ${p.name} ใช่หรือไม่?`;
+        else if (actionType === 'SEER_CHECK') confirmMsg = `คุณต้องการตรวจบทบาทของ ${p.name} ใช่หรือไม่?`;
+        else if (actionType === 'GUARD_PROTECT') confirmMsg = `คุณต้องการจะปกป้อง ${p.name} ใช่หรือไม่?`;
+
+        if(confirm(confirmMsg)) {
+            if(actionType === 'VOTE') {
+                socket.emit('castVote', { roomId: myRoom, targetId: p.id });
+                document.querySelectorAll('.player-spot').forEach(s => { s.classList.remove('targetable'); s.classList.remove('targetable-self'); s.onclick = null; });
+                document.getElementById('status-text').innerText = "ส่งผลโหวตแล้ว รอเวลาหมด...";
+            } else {
+                if(actionType === 'GUARD_PROTECT') lastGuard = p.id;
+                socket.emit('nightAction', { roomId: myRoom, targetId: p.id, actionType: actionType });
+                document.querySelectorAll('.player-spot').forEach(s => { s.classList.remove('targetable'); s.classList.remove('targetable-self'); s.onclick = null; });
+                document.getElementById('status-text').innerText = "ส่งคำสั่งแล้ว รอคนอื่น...";
+            }
+        }
     }
 
     socket.on('roomListUpdate', (rooms) => {
@@ -450,6 +486,8 @@
                 showScreen('game-screen'); 
                 document.getElementById('role-text').innerText = "คุณคือ: " + myRole;
                 document.getElementById('role-img').style.backgroundImage = "url('" + ROLE_IMG[myRole] + "')";
+                // ✅ reset การ์ดให้กลับด้านหน้า เมื่อเล่นต่อ
+                document.getElementById('card-obj').classList.remove('flipped');
                 document.getElementById('ready-btn').disabled = false;
                 document.getElementById('ready-btn').innerText = "พร้อมเข้าสู่กลางคืน";
                 generateTableSpots(room.maxPlayers.toString());
@@ -476,7 +514,7 @@
             if(!me.isAlive) { statusText.innerText = "คุณตายแล้ว เฝ้าดูวิญญาณ..."; }
             else if(room.state === 'NIGHT_WOLF' && myRole === 'มนุษย์หมาป่า') { statusText.innerText = "หมาป่า! กดเลือกเป้าหมายที่รูปผู้เล่น!"; }
             else if(room.state === 'NIGHT_SEER' && myRole === 'ผู้หยั่งรู้') { statusText.innerText = "ผู้หยั่งรู้! กดเลือกเป้าหมายที่รูปผู้เล่น!"; }
-            else if(room.state === 'NIGHT_BODYGUARD' && myRole === 'บอดี้การ์ด') { statusText.innerText = "บอดี้การ์ด! กดเลือกปกป้องที่รูปผู้เล่น!"; }
+            else if(room.state === 'NIGHT_BODYGUARD' && myRole === 'บอดี้การ์ด') { statusText.innerText = "บอดี้การ์ด! กดเลือกปกป้องที่รูปผู้เล่น (รวมตัวเองได้)!"; }
             else { statusText.innerText = "🌙 นอนหลับ... รอคนอื่นดำเนินการ"; }
             
             renderPlayersOnTable(room);
@@ -527,7 +565,7 @@
             const controls = document.getElementById('table-controls');
             if(me && me.isAlive) {
                 controls.classList.remove('hidden');
-                controls.innerHTML = `<button style="background:#555;" onclick="if(confirm('คุณต้องการจะข้ามการโหวตใช่หรือไม่?')){socket.emit('castVote', { roomId: myRoom, targetId: 'SKIP' }); this.disabled=true; document.getElementById('status-text').innerText='ข้ามโหวตแล้ว รอเวลาหมด...'; document.querySelectorAll('.player-spot').forEach(s => { s.classList.remove('targetable'); s.onclick = null; });}">ข้ามการโหวต (Skip)</button>`;
+                controls.innerHTML = `<button style="background:#555;" onclick="if(confirm('คุณต้องการจะข้ามการโหวตใช่หรือไม่?')){socket.emit('castVote', { roomId: myRoom, targetId: 'SKIP' }); this.disabled=true; document.getElementById('status-text').innerText='ข้ามโหวตแล้ว รอเวลาหมด...'; document.querySelectorAll('.player-spot').forEach(s => { s.classList.remove('targetable'); s.classList.remove('targetable-self'); s.onclick = null; });}">ข้ามการโหวต (Skip)</button>`;
             } else { controls.classList.add('hidden'); }
         }
 
@@ -562,12 +600,10 @@
         if(vc && currentGameState === 'VOTING') vc.innerHTML = `<p>กดที่กล่องผู้เล่นเพื่อโหวต<br>(โหวตแล้ว ${count} / ${totalAlive} คน)</p>`;
     });
     
-    // --- โค้ดส่วนที่แก้บั๊กตัวเลขจับเวลาค้างบนหน้าจอ ---
     socket.on('timerUpdate', (time) => { 
         const timer = document.getElementById('timer-text'); 
         if(timer) {
             timer.innerText = time;
-            // ซ่อนกล่องข้อความถ้า Server ส่งค่าว่างมา (เมื่อเวลาสิ้นสุด)
             if(time === '') {
                 timer.classList.add('hidden');
             } else {
@@ -583,5 +619,6 @@
     function startGame() { socket.emit('startGame', myRoom); }
     socket.on('errorMsg', (m) => alert(m));
 </script>
+
 </body>
 </html>
