@@ -34,7 +34,6 @@
         .avatar-option { width: 80px; height: 80px; border-radius: 50%; border: 3px solid transparent; cursor: pointer; object-fit: cover; transition: 0.3s; background: #2c3e50; }
         .avatar-option.selected { border-color: var(--gold); box-shadow: 0 0 15px var(--gold); transform: scale(1.1); }
 
-        /* 👑 ตกแต่ง UI โต๊ะธีม Neon Blue */
         #game-table-screen { 
             width: 100%; 
             max-width: 500px; 
@@ -326,7 +325,6 @@
         }
 
         for (let i = 0; i < positions.length; i++) {
-            // เอา ⏳ ออกจากคำว่า "รอ"
             spots.innerHTML += `
                 <div class="player-spot ${positions[i]}" id="spot-index-${i}">
                     <div class="neon-player-box">
@@ -353,19 +351,17 @@
             
             const avatar = document.getElementById(`${spotId}-avatar`); if(avatar) avatar.src = p.avatarUrl || AVATARS[i % AVATARS.length]; 
             
-            // เพิ่มคำว่า (คุณ) ถ้านี่คือตัวเรา
             const isMe = p.id === socket.id;
             const name = document.getElementById(`${spotId}-name`); 
             if(name) name.innerText = p.name + (p.isHost?'👑':'') + (isMe?' (คุณ)':'');
             
-            // ซ่อนกล่องสถานะ "รอ/พร้อม" เมื่อเกมเริ่ม เพื่อไม่ให้รกตา
             const ready = document.getElementById(`${spotId}-ready`); 
             if(ready) {
                 if (room.state === 'LOBBY' || room.state === 'ROLE_REVEAL') {
                     ready.classList.remove('hidden');
                     ready.innerText = p.isReady ? '✅ พร้อม' : 'รอ'; 
                 } else {
-                    ready.classList.add('hidden'); // ซ่อนทิ้งในตอนเล่นเกม
+                    ready.classList.add('hidden'); 
                 }
             }
             
@@ -389,14 +385,12 @@
                     if(canTarget) {
                         spot.classList.add('targetable');
                         spot.onclick = () => {
-                            // ระบบยืนยันการกดสกิล/โหวต
                             let confirmMsg = "";
                             if (actionType === 'VOTE') confirmMsg = `คุณต้องการจะโหวต ${p.name} ใช่หรือไม่?`;
                             else if (actionType === 'WOLF_KILL') confirmMsg = `คุณต้องการจะฆ่า ${p.name} ใช่หรือไม่?`;
                             else if (actionType === 'SEER_CHECK') confirmMsg = `คุณต้องการตรวจบทบาทของ ${p.name} ใช่หรือไม่?`;
                             else if (actionType === 'GUARD_PROTECT') confirmMsg = `คุณต้องการจะปกป้อง ${p.name} ใช่หรือไม่?`;
 
-                            // ใช้ฟังก์ชัน confirm ของ Browser (จะเด้งหน้าต่างให้ตอบ ตกลง/ยกเลิก)
                             if(confirm(confirmMsg)) {
                                 if(actionType === 'VOTE') {
                                     socket.emit('castVote', { roomId: myRoom, targetId: p.id });
@@ -439,7 +433,6 @@
             else if (room.state === 'GAME_OVER') speakGame("เกมจบแล้ว " + room.winner);
         }
 
-        // หน้าจอนับถอยหลังก่อนเริ่มเกม
         if(room.state === 'STARTING') {
             lastGuard = '';
             showScreen('game-table-screen');
@@ -463,7 +456,6 @@
             }
         }
 
-        // หน้าจอนับถอยหลังก่อนเข้ากลางคืน
         if(room.state === 'NIGHT_TRANSITION') {
             showScreen('game-table-screen');
             document.getElementById('phase-title').innerText = "🌙 เตรียมเข้าสู่กลางคืน...";
@@ -510,7 +502,6 @@
             } else { controls.classList.add('hidden'); }
         }
 
-        // หน้าจอนับถอยหลังก่อนโหวต
         if(room.state === 'PRE_VOTING') {
             showScreen('game-table-screen');
             document.getElementById('phase-title').innerText = "⚖️ เตรียมตัวโหวตใน...";
@@ -571,9 +562,20 @@
         if(vc && currentGameState === 'VOTING') vc.innerHTML = `<p>กดที่กล่องผู้เล่นเพื่อโหวต<br>(โหวตแล้ว ${count} / ${totalAlive} คน)</p>`;
     });
     
-    socket.on('timerUpdate', (time) => { const timer = document.getElementById('timer-text'); if(timer) timer.innerText = time; });
+    // --- โค้ดส่วนที่แก้บั๊กตัวเลขจับเวลาค้างบนหน้าจอ ---
+    socket.on('timerUpdate', (time) => { 
+        const timer = document.getElementById('timer-text'); 
+        if(timer) {
+            timer.innerText = time;
+            // ซ่อนกล่องข้อความถ้า Server ส่งค่าว่างมา (เมื่อเวลาสิ้นสุด)
+            if(time === '') {
+                timer.classList.add('hidden');
+            } else {
+                timer.classList.remove('hidden');
+            }
+        } 
+    });
     
-    // เพิ่ม Emoji แจ้งเตือนเมื่อผู้หยั่งรู้ตรวจคน
     socket.on('seerResult', (d) => { alert(`ผลการตรวจ: ${d.name} คือ ${d.result} ${d.result === 'คนดี' ? '👍🏻' : '👎🏻'}`); });
     
     function playerReady() { socket.emit('playerReady', myRoom); document.getElementById('ready-btn').disabled = true; document.getElementById('ready-btn').innerText = "รอคนอื่นกดพร้อม..."; }
