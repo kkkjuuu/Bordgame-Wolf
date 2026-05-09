@@ -34,42 +34,48 @@
         .avatar-option { width: 80px; height: 80px; border-radius: 50%; border: 3px solid transparent; cursor: pointer; object-fit: cover; transition: 0.3s; background: #2c3e50; }
         .avatar-option.selected { border-color: var(--gold); box-shadow: 0 0 15px var(--gold); transform: scale(1.1); }
 
-        /* 👑 ตกแต่ง UI โต๊ะตรงตามบรีฟเป๊ะๆ 🐺 */
+        /* 👑 ตกแต่ง UI โต๊ะธีม Neon Blue */
         #game-table-screen { 
             width: 100%; 
-            max-width: 400px; 
-            margin: 60px auto 20px auto; /* เพิ่ม margin-top ให้พ้นขอบจอบน */
+            max-width: 500px; /* ขยายให้กว้างขึ้นเพื่อรองรับ 6 คน */
+            margin: 80px auto 20px auto; 
             position: relative;
         }
 
-        /* สีดำคือโต๊ะ */
-        .table-black-bg {
-            background: var(--table-black);
-            width: 90%;
-            height: 220px;
+        /* โต๊ะหลัก (กรอบสีฟ้าเรืองแสง) */
+        .neon-table-bg {
+            background: radial-gradient(circle, #0f172a 0%, #000000 100%);
+            width: 80%;
+            height: 240px;
             margin: 0 auto;
-            border-radius: 15px;
+            border-radius: 12px;
+            border: 3px solid #3ebdf8; /* สีฟ้า */
+            box-shadow: 0 0 15px rgba(62, 189, 248, 0.5), inset 0 0 20px rgba(62, 189, 248, 0.2);
             position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
-        }
-
-        /* สีเทาด้านใน คือ ตัวหนังสือ */
-        .table-grey-inner {
-            background: var(--table-grey);
-            width: 90%;
-            height: 85%;
-            border-radius: 10px;
-            padding: 10px;
-            box-sizing: border-box;
             display: flex;
             flex-direction: column;
-            justify-content: center;
             align-items: center;
+            justify-content: center;
+        }
+
+        /* ลายน้ำด้านล่างโต๊ะ */
+        .neon-table-bg::after {
+            content: "CARD GAME BY LILYUU.CCO";
+            position: absolute;
+            bottom: 12px;
+            font-size: 10px;
+            font-weight: 700;
+            color: rgba(62, 189, 248, 0.3);
+            letter-spacing: 2px;
+            pointer-events: none; /* ไม่ให้กดโดนข้อความ */
+        }
+
+        /* ส่วนแสดงข้อความตรงกลาง (โปร่งใส) */
+        .table-center-content {
+            z-index: 5;
+            text-align: center;
             color: white;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+            text-shadow: 1px 1px 4px #000;
         }
 
         .player-spot {
@@ -81,17 +87,18 @@
             z-index: 10;
         }
 
-        /* สีม่วงคือโปรไฟล์ผู้เล่น */
-        .purple-box {
-            width: 65px;
-            height: 65px;
-            background: var(--profile-purple);
+        /* กล่องโปรไฟล์ผู้เล่น (ขอบฟ้าเรืองแสง) */
+        .neon-player-box {
+            width: 70px;
+            height: 70px;
+            background: #000;
             border-radius: 12px;
-            padding: 5px;
+            border: 3px solid #3ebdf8;
+            box-shadow: 0 0 15px rgba(62, 189, 248, 0.5);
+            padding: 3px;
             box-sizing: border-box;
             position: relative;
             transition: 0.2s;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
         }
 
         .player-avatar-spot {
@@ -99,16 +106,16 @@
             height: 100%;
             border-radius: 8px;
             object-fit: cover;
-            background: #2c3e50;
+            background: #111;
         }
 
-        /* ตำแหน่งตายตัวรอบโต๊ะ */
-        .pos-top-left { top: -30px; left: -20px; }
-        .pos-top-center { top: -30px; left: 50%; transform: translateX(-50%); }
-        .pos-top-right { top: -30px; right: -20px; }
-        .pos-bottom-left { bottom: -45px; left: -20px; }
-        .pos-bottom-center { bottom: -45px; left: 50%; transform: translateX(-50%); }
-        .pos-bottom-right { bottom: -45px; right: -20px; }
+        /* ปรับตำแหน่งให้กล่องวางทับเส้นขอบโต๊ะพอดี (-35px) */
+        .pos-top-left { top: -35px; left: -35px; }
+        .pos-top-center { top: -35px; left: 50%; transform: translateX(-50%); }
+        .pos-top-right { top: -35px; right: -35px; }
+        .pos-bottom-left { bottom: -35px; left: -35px; }
+        .pos-bottom-center { bottom: -35px; left: 50%; transform: translateX(-50%); }
+        .pos-bottom-right { bottom: -35px; right: -35px; }
 
         .player-name {
             margin-top: 5px;
@@ -132,7 +139,6 @@
             border-radius: 3px;
         }
 
-        /* กะโหลก และ โล่ */
         .overlay-icon {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -140,17 +146,18 @@
             background-repeat: no-repeat;
             background-position: center;
             z-index: 5;
-            background-color: rgba(0,0,0,0.5); /* ทำให้พื้นหลังทึบลงนิดนึงตอนตาย/ป้องกัน */
+            background-color: rgba(0,0,0,0.5); 
             border-radius: 8px;
         }
 
         /* เอฟเฟกต์เป้าหมาย (กระพริบให้กด) */
-        .player-spot.targetable .purple-box {
+        .player-spot.targetable .neon-player-box {
             cursor: pointer;
-            box-shadow: 0 0 15px 5px var(--seer);
+            box-shadow: 0 0 20px 8px #3ebdf8;
             animation: pulse 1.5s infinite;
+            border-color: #fff;
         }
-        .player-spot.targetable:hover .purple-box { transform: scale(1.1); }
+        .player-spot.targetable:hover .neon-player-box { transform: scale(1.1); }
 
         @keyframes pulse {
             0% { transform: scale(1); }
@@ -219,8 +226,8 @@
 </div>
 
 <div id="game-table-screen" class="hidden">
-    <div class="table-black-bg">
-        <div class="table-grey-inner" id="table-central-rect">
+    <div class="neon-table-bg">
+        <div class="table-center-content" id="table-central-rect">
             <h3 style="margin:0 0 5px 0; font-size:20px; color:#f1c40f;" id="phase-title">🌙 กลางคืน</h3>
             <div id="status-text" style="margin:0; font-size: 14px; line-height: 1.4;"></div>
             <p id="timer-text" class="hidden timer-text"></p>
@@ -229,7 +236,7 @@
         <div id="player-spots"></div>
     </div>
     
-    <div id="table-controls" class="hidden" style="margin-top: 50px; width: 90%; max-width: 400px; margin-left: auto; margin-right: auto;"></div>
+    <div id="table-controls" class="hidden" style="margin-top: 60px; width: 90%; max-width: 400px; margin-left: auto; margin-right: auto;"></div>
     
     <div id="end-screen" class="hidden container" style="margin-top: 50px;">
         <h1 id="win-title" style="font-size: 40px; margin-bottom: 5px;"></h1>
@@ -309,12 +316,10 @@
         socket.emit('joinRoom', { roomId: rid, playerName: n, password: (hasP?prompt("รหัสผ่าน:"): ""), avatarUrl: currentAvatar }); 
     }
 
-    // สร้างโครงโต๊ะแบบ Absolute (มุม/ขอบ)
     function generateTableSpots(maxPlayers) {
         const spots = document.getElementById('player-spots');
         spots.innerHTML = ''; 
 
-        // กำหนดคลาสตำแหน่งตามจำนวนผู้เล่น (อ้างอิงจากรูป 1, 2, 3)
         let positions = [];
         if (maxPlayers === '4') {
             positions = ['pos-top-left', 'pos-top-right', 'pos-bottom-left', 'pos-bottom-right'];
@@ -323,13 +328,13 @@
         } else if (maxPlayers === '6') {
             positions = ['pos-top-left', 'pos-top-center', 'pos-top-right', 'pos-bottom-left', 'pos-bottom-center', 'pos-bottom-right'];
         } else {
-            positions = ['pos-top-left', 'pos-top-right', 'pos-bottom-left', 'pos-bottom-right']; // Default fallback
+            positions = ['pos-top-left', 'pos-top-right', 'pos-bottom-left', 'pos-bottom-right'];
         }
 
         for (let i = 0; i < positions.length; i++) {
             spots.innerHTML += `
                 <div class="player-spot ${positions[i]}" id="spot-index-${i}">
-                    <div class="purple-box">
+                    <div class="neon-player-box">
                         <img src="" class="player-avatar-spot" id="spot-index-${i}-avatar">
                         <div id="spot-index-${i}-skull" class="overlay-icon hidden" style="background-image:url('${ICON_IMG[' skull']}'); background-color: rgba(0,0,0,0.6);"></div>
                         <div id="spot-index-${i}-shield" class="overlay-icon hidden" style="background-image:url('${ICON_IMG[' shield']}')"></div>
@@ -477,7 +482,7 @@
             const me = room.players.find(p => p.id === socket.id);
             totalAlive = room.players.filter(p => p.isAlive).length;
             
-            statusText.innerHTML = `<p>กดที่กล่องสีม่วงเพื่อโหวต<br>(โหวตแล้ว 0 / ${totalAlive} คน)</p>`;
+            statusText.innerHTML = `<p>กดที่กล่องผู้เล่นเพื่อโหวต<br>(โหวตแล้ว 0 / ${totalAlive} คน)</p>`;
             timerText.classList.remove('hidden'); 
             
             renderPlayersOnTable(room);
@@ -517,7 +522,7 @@
 
     socket.on('voteCountUpdate', (count) => {
         const vc = document.getElementById('status-text');
-        if(vc && currentGameState === 'VOTING') vc.innerHTML = `<p>กดที่กล่องสีม่วงเพื่อโหวต<br>(โหวตแล้ว ${count} / ${totalAlive} คน)</p>`;
+        if(vc && currentGameState === 'VOTING') vc.innerHTML = `<p>กดที่กล่องผู้เล่นเพื่อโหวต<br>(โหวตแล้ว ${count} / ${totalAlive} คน)</p>`;
     });
     socket.on('timerUpdate', (time) => { const timer = document.getElementById('timer-text'); if(timer) timer.innerText = time; });
     socket.on('seerResult', (d) => { alert(`ผลการตรวจ: ${d.name} คือ ${d.result}`); });
