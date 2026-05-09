@@ -37,19 +37,18 @@
         /* 👑 ตกแต่ง UI โต๊ะธีม Neon Blue */
         #game-table-screen { 
             width: 100%; 
-            max-width: 500px; /* ขยายให้กว้างขึ้นเพื่อรองรับ 6 คน */
+            max-width: 500px; 
             margin: 80px auto 20px auto; 
             position: relative;
         }
 
-        /* โต๊ะหลัก (กรอบสีฟ้าเรืองแสง) */
         .neon-table-bg {
             background: radial-gradient(circle, #0f172a 0%, #000000 100%);
             width: 80%;
             height: 240px;
             margin: 0 auto;
             border-radius: 12px;
-            border: 3px solid #3ebdf8; /* สีฟ้า */
+            border: 3px solid #3ebdf8; 
             box-shadow: 0 0 15px rgba(62, 189, 248, 0.5), inset 0 0 20px rgba(62, 189, 248, 0.2);
             position: relative;
             display: flex;
@@ -58,7 +57,6 @@
             justify-content: center;
         }
 
-        /* ลายน้ำด้านล่างโต๊ะ */
         .neon-table-bg::after {
             content: "CARD GAME BY LILYUU.CCO";
             position: absolute;
@@ -67,10 +65,9 @@
             font-weight: 700;
             color: rgba(62, 189, 248, 0.3);
             letter-spacing: 2px;
-            pointer-events: none; /* ไม่ให้กดโดนข้อความ */
+            pointer-events: none; 
         }
 
-        /* ส่วนแสดงข้อความตรงกลาง (โปร่งใส) */
         .table-center-content {
             z-index: 5;
             text-align: center;
@@ -87,7 +84,6 @@
             z-index: 10;
         }
 
-        /* กล่องโปรไฟล์ผู้เล่น (ขอบฟ้าเรืองแสง) */
         .neon-player-box {
             width: 70px;
             height: 70px;
@@ -109,7 +105,6 @@
             background: #111;
         }
 
-        /* ปรับตำแหน่งให้กล่องวางทับเส้นขอบโต๊ะพอดี (-35px) */
         .pos-top-left { top: -35px; left: -35px; }
         .pos-top-center { top: -35px; left: 50%; transform: translateX(-50%); }
         .pos-top-right { top: -35px; right: -35px; }
@@ -150,7 +145,6 @@
             border-radius: 8px;
         }
 
-        /* เอฟเฟกต์เป้าหมาย (กระพริบให้กด) */
         .player-spot.targetable .neon-player-box {
             cursor: pointer;
             box-shadow: 0 0 20px 8px #3ebdf8;
@@ -332,6 +326,7 @@
         }
 
         for (let i = 0; i < positions.length; i++) {
+            // เอา ⏳ ออกจากคำว่า "รอ"
             spots.innerHTML += `
                 <div class="player-spot ${positions[i]}" id="spot-index-${i}">
                     <div class="neon-player-box">
@@ -340,7 +335,7 @@
                         <div id="spot-index-${i}-shield" class="overlay-icon hidden" style="background-image:url('${ICON_IMG[' shield']}')"></div>
                     </div>
                     <div class="player-name" id="spot-index-${i}-name">?</div>
-                    <div class="player-ready" id="spot-index-${i}-ready">⏳ รอ</div>
+                    <div class="player-ready" id="spot-index-${i}-ready">รอ</div> 
                 </div>
             `;
         }
@@ -357,8 +352,22 @@
             const spot = document.getElementById(spotId);
             
             const avatar = document.getElementById(`${spotId}-avatar`); if(avatar) avatar.src = p.avatarUrl || AVATARS[i % AVATARS.length]; 
-            const name = document.getElementById(`${spotId}-name`); if(name) name.innerText = p.name + (p.isHost?'👑':'');
-            const ready = document.getElementById(`${spotId}-ready`); if(ready) ready.innerText = p.isReady?'✅':'⏳';
+            
+            // เพิ่มคำว่า (คุณ) ถ้านี่คือตัวเรา
+            const isMe = p.id === socket.id;
+            const name = document.getElementById(`${spotId}-name`); 
+            if(name) name.innerText = p.name + (p.isHost?'👑':'') + (isMe?' (คุณ)':'');
+            
+            // ซ่อนกล่องสถานะ "รอ/พร้อม" เมื่อเกมเริ่ม เพื่อไม่ให้รกตา
+            const ready = document.getElementById(`${spotId}-ready`); 
+            if(ready) {
+                if (room.state === 'LOBBY' || room.state === 'ROLE_REVEAL') {
+                    ready.classList.remove('hidden');
+                    ready.innerText = p.isReady ? '✅ พร้อม' : 'รอ'; 
+                } else {
+                    ready.classList.add('hidden'); // ซ่อนทิ้งในตอนเล่นเกม
+                }
+            }
             
             const skull = document.getElementById(`${spotId}-skull`); if(skull) { if(!p.isAlive) skull.classList.remove('hidden'); else skull.classList.add('hidden'); }
             const shield = document.getElementById(`${spotId}-shield`); if(shield) { if(p.isAlive && currentGameState === 'DAY_TIME' && room.shieldTarget === p.id) shield.classList.remove('hidden'); else shield.classList.add('hidden'); }
@@ -366,7 +375,7 @@
             spot.onclick = null;
             spot.classList.remove('targetable');
 
-            if(p.isAlive && p.id !== socket.id) {
+            if(p.isAlive && !isMe) {
                 const me = room.players.find(x => x.id === socket.id);
                 if(me && me.isAlive) {
                     let canTarget = false;
@@ -380,15 +389,25 @@
                     if(canTarget) {
                         spot.classList.add('targetable');
                         spot.onclick = () => {
-                            if(actionType === 'VOTE') {
-                                socket.emit('castVote', { roomId: myRoom, targetId: p.id });
-                                document.querySelectorAll('.player-spot').forEach(s => { s.classList.remove('targetable'); s.onclick = null; });
-                                document.getElementById('status-text').innerText = "ส่งผลโหวตแล้ว รอเวลาหมด...";
-                            } else {
-                                if(actionType === 'GUARD_PROTECT') lastGuard = p.id;
-                                socket.emit('nightAction', { roomId: myRoom, targetId: p.id, actionType: actionType });
-                                document.querySelectorAll('.player-spot').forEach(s => { s.classList.remove('targetable'); s.onclick = null; });
-                                document.getElementById('status-text').innerText = "ส่งคำสั่งแล้ว รอคนอื่น...";
+                            // ระบบยืนยันการกดสกิล/โหวต
+                            let confirmMsg = "";
+                            if (actionType === 'VOTE') confirmMsg = `คุณต้องการจะโหวต ${p.name} ใช่หรือไม่?`;
+                            else if (actionType === 'WOLF_KILL') confirmMsg = `คุณต้องการจะฆ่า ${p.name} ใช่หรือไม่?`;
+                            else if (actionType === 'SEER_CHECK') confirmMsg = `คุณต้องการตรวจบทบาทของ ${p.name} ใช่หรือไม่?`;
+                            else if (actionType === 'GUARD_PROTECT') confirmMsg = `คุณต้องการจะปกป้อง ${p.name} ใช่หรือไม่?`;
+
+                            // ใช้ฟังก์ชัน confirm ของ Browser (จะเด้งหน้าต่างให้ตอบ ตกลง/ยกเลิก)
+                            if(confirm(confirmMsg)) {
+                                if(actionType === 'VOTE') {
+                                    socket.emit('castVote', { roomId: myRoom, targetId: p.id });
+                                    document.querySelectorAll('.player-spot').forEach(s => { s.classList.remove('targetable'); s.onclick = null; });
+                                    document.getElementById('status-text').innerText = "ส่งผลโหวตแล้ว รอเวลาหมด...";
+                                } else {
+                                    if(actionType === 'GUARD_PROTECT') lastGuard = p.id;
+                                    socket.emit('nightAction', { roomId: myRoom, targetId: p.id, actionType: actionType });
+                                    document.querySelectorAll('.player-spot').forEach(s => { s.classList.remove('targetable'); s.onclick = null; });
+                                    document.getElementById('status-text').innerText = "ส่งคำสั่งแล้ว รอคนอื่น...";
+                                }
                             }
                         };
                     }
@@ -416,12 +435,19 @@
             else if (room.state === 'NIGHT_SEER') speakGame("มนุษย์หมาป่าหลับตา ผู้หยั่งรู้ลืมตา");
             else if (room.state === 'NIGHT_BODYGUARD') speakGame("ผู้หยั่งรู้หลับตา บอดี้การ์ดลืมตา");
             else if (room.state === 'DAY_TIME') speakGame("ทุกคนลืมตา เช้าแล้ว");
-            else if (room.state === 'VOTING') speakGame("หมดเวลาพูดคุย เริ่มทำการโหวตได้");
+            else if (room.state === 'VOTING') speakGame("เริ่มทำการโหวตได้");
             else if (room.state === 'GAME_OVER') speakGame("เกมจบแล้ว " + room.winner);
         }
 
+        // หน้าจอนับถอยหลังก่อนเริ่มเกม
         if(room.state === 'STARTING') {
             lastGuard = '';
+            showScreen('game-table-screen');
+            document.getElementById('phase-title').innerText = "⏳ กำลังเริ่มเกม...";
+            document.getElementById('status-text').innerHTML = "";
+            document.getElementById('timer-text').classList.remove('hidden');
+            document.getElementById('table-controls').classList.add('hidden');
+            renderPlayersOnTable(room);
         }
 
         if(room.state === 'ROLE_REVEAL') {
@@ -437,7 +463,17 @@
             }
         }
 
-        if(room.state.includes('NIGHT')) {
+        // หน้าจอนับถอยหลังก่อนเข้ากลางคืน
+        if(room.state === 'NIGHT_TRANSITION') {
+            showScreen('game-table-screen');
+            document.getElementById('phase-title').innerText = "🌙 เตรียมเข้าสู่กลางคืน...";
+            document.getElementById('status-text').innerHTML = "";
+            document.getElementById('timer-text').classList.remove('hidden');
+            document.getElementById('table-controls').classList.add('hidden');
+            renderPlayersOnTable(room);
+        }
+
+        if(room.state.includes('NIGHT_') && room.state !== 'NIGHT_TRANSITION') {
             showScreen('game-table-screen');
             document.getElementById('phase-title').innerText = "🌙 กลางคืน";
             const statusText = document.getElementById('status-text');
@@ -474,6 +510,16 @@
             } else { controls.classList.add('hidden'); }
         }
 
+        // หน้าจอนับถอยหลังก่อนโหวต
+        if(room.state === 'PRE_VOTING') {
+            showScreen('game-table-screen');
+            document.getElementById('phase-title').innerText = "⚖️ เตรียมตัวโหวตใน...";
+            document.getElementById('status-text').innerHTML = "";
+            document.getElementById('timer-text').classList.remove('hidden');
+            document.getElementById('table-controls').classList.add('hidden');
+            renderPlayersOnTable(room);
+        }
+
         if(room.state === 'VOTING') {
             showScreen('game-table-screen');
             document.getElementById('phase-title').innerText = "⚖️ ช่วงโหวต!";
@@ -490,7 +536,7 @@
             const controls = document.getElementById('table-controls');
             if(me && me.isAlive) {
                 controls.classList.remove('hidden');
-                controls.innerHTML = `<button style="background:#555;" onclick="socket.emit('castVote', { roomId: myRoom, targetId: 'SKIP' }); this.disabled=true; document.getElementById('status-text').innerText='ข้ามโหวตแล้ว รอเวลาหมด...'; document.querySelectorAll('.player-spot').forEach(s => { s.classList.remove('targetable'); s.onclick = null; });">ข้ามการโหวต (Skip)</button>`;
+                controls.innerHTML = `<button style="background:#555;" onclick="if(confirm('คุณต้องการจะข้ามการโหวตใช่หรือไม่?')){socket.emit('castVote', { roomId: myRoom, targetId: 'SKIP' }); this.disabled=true; document.getElementById('status-text').innerText='ข้ามโหวตแล้ว รอเวลาหมด...'; document.querySelectorAll('.player-spot').forEach(s => { s.classList.remove('targetable'); s.onclick = null; });}">ข้ามการโหวต (Skip)</button>`;
             } else { controls.classList.add('hidden'); }
         }
 
@@ -524,8 +570,12 @@
         const vc = document.getElementById('status-text');
         if(vc && currentGameState === 'VOTING') vc.innerHTML = `<p>กดที่กล่องผู้เล่นเพื่อโหวต<br>(โหวตแล้ว ${count} / ${totalAlive} คน)</p>`;
     });
+    
     socket.on('timerUpdate', (time) => { const timer = document.getElementById('timer-text'); if(timer) timer.innerText = time; });
-    socket.on('seerResult', (d) => { alert(`ผลการตรวจ: ${d.name} คือ ${d.result}`); });
+    
+    // เพิ่ม Emoji แจ้งเตือนเมื่อผู้หยั่งรู้ตรวจคน
+    socket.on('seerResult', (d) => { alert(`ผลการตรวจ: ${d.name} คือ ${d.result} ${d.result === 'คนดี' ? '👍🏻' : '👎🏻'}`); });
+    
     function playerReady() { socket.emit('playerReady', myRoom); document.getElementById('ready-btn').disabled = true; document.getElementById('ready-btn').innerText = "รอคนอื่นกดพร้อม..."; }
     function playAgain() { socket.emit('playAgain', myRoom); }
     function startGame() { socket.emit('startGame', myRoom); }
